@@ -1677,7 +1677,7 @@ function renderRecipes(){
     const ings = r.ingredients.map(ing => `
       <div class="ingredient-row">
         <span class="ing-name">${ing.name}</span>
-        <span class="ing-amount">${ing.amount}${ing.unit||'ג׳}</span>
+        <span class="ing-amount">${ing.amount}${ing.unit||'ג'}</span>
         <span class="ing-cal">${Math.round(ing.calPer * ing.amount / 100)} קק"ל</span>
       </div>`).join('');
     return `
