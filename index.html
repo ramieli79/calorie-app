@@ -1,0 +1,2327 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#0f1a12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>קלוריה — מעקב תזונה</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d1411;
+      --surface: #141f18;
+      --surface2: #1a2920;
+      --border: #2a3d2e;
+      --accent: #4ade80;
+      --accent2: #22c55e;
+      --accent-dim: #16a34a33;
+      --text: #e8f5ec;
+      --text2: #7ba588;
+      --danger: #f87171;
+      --warn: #fb923c;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ─── NAV ─── */
+    .nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    }
+    .nav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: none; border: none; color: var(--text2);
+      font-family: 'Heebo', sans-serif; font-size: 11px; cursor: pointer;
+      padding: 4px 0; transition: color .2s;
+    }
+    .nav-btn.active { color: var(--accent); }
+    .nav-btn svg { width: 22px; height: 22px; }
+
+    /* ─── PAGES ─── */
+    .page { display: none; padding: 0 0 90px; min-height: 100dvh; }
+    .page.active { display: block; }
+
+    /* ─── HEADER ─── */
+    .page-header {
+      padding: 56px 20px 20px;
+      background: linear-gradient(180deg, #0d1411 0%, transparent 100%);
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(8px);
+    }
+    .page-header h1 { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; }
+    .page-header p { color: var(--text2); font-size: 13px; margin-top: 2px; }
+
+    /* ─── TODAY DASHBOARD ─── */
+    .ring-card {
+      margin: 0 16px 16px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex; align-items: center; gap: 24px;
+    }
+    .ring-wrap { position: relative; flex-shrink: 0; }
+    .ring-wrap svg { width: 110px; height: 110px; transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: var(--surface2); stroke-width: 8; }
+    .ring-fg { fill: none; stroke: var(--accent); stroke-width: 8; stroke-linecap: round;
+      transition: stroke-dashoffset .6s ease; }
+    .ring-label {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .ring-cal { font-size: 22px; font-weight: 900; line-height: 1; }
+    .ring-sub { font-size: 10px; color: var(--text2); margin-top: 2px; }
+    .ring-info { flex: 1; }
+    .ring-info h2 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+    .macro-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .macro-pill {
+      background: var(--surface2); border-radius: 20px;
+      padding: 5px 12px; font-size: 12px; font-weight: 500;
+    }
+    .macro-pill span { color: var(--text2); font-weight: 400; }
+
+    .quick-add-btn {
+      display: flex; align-items: center; gap: 12px;
+      width: calc(100% - 32px); margin: 0 16px 12px;
+      background: var(--accent); color: #0d1411;
+      border: none; border-radius: var(--radius); padding: 16px 20px;
+      font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .quick-add-btn:active { opacity: .8; }
+    .quick-add-btn svg { width: 20px; height: 20px; }
+
+    .section-label {
+      padding: 0 20px 10px;
+      font-size: 11px; font-weight: 700; color: var(--text2);
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    .meals-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+    .meal-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .meal-name { font-size: 15px; font-weight: 500; }
+    .meal-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .meal-cal { font-size: 17px; font-weight: 700; color: var(--accent); }
+    .meal-delete {
+      background: none; border: none; color: var(--text2);
+      cursor: pointer; padding: 4px; margin-right: -4px;
+    }
+    .meal-delete:active { color: var(--danger); }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: var(--text2);
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ─── STATS ─── */
+    .stats-tabs {
+      display: flex; gap: 6px; margin: 0 16px 16px; overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .stats-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 7px 18px; font-family: 'Heebo', sans-serif;
+      font-size: 13px; color: var(--text2); cursor: pointer; transition: all .2s;
+    }
+    .tab-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+    .stat-cards { padding: 0 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 16px;
+    }
+    .stat-card .label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+    .stat-card .value { font-size: 22px; font-weight: 900; }
+    .stat-card .unit { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    .bar-chart { margin: 0 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+    .bar-chart h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+    .bars { display: flex; align-items: flex-end; gap: 6px; height: 80px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+    .bar-fill { width: 100%; background: var(--accent2); border-radius: 4px 4px 0 0; min-height: 2px; transition: height .4s ease; }
+    .bar-label { font-size: 9px; color: var(--text2); }
+    .bar-val { font-size: 9px; font-weight: 600; }
+
+    /* ─── ADD FOOD ─── */
+    .add-form { padding: 0 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 12px; color: var(--text2); font-weight: 600; margin-bottom: 6px; display: block; letter-spacing: .5px; }
+    .form-input {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px 16px; color: var(--text);
+      font-family: 'Heebo', sans-serif; font-size: 15px;
+      transition: border-color .2s; outline: none;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .form-input::placeholder { color: var(--text2); }
+
+    .cal-preview {
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      border-radius: var(--radius-sm); padding: 16px; margin-bottom: 14px;
+      text-align: center;
+    }
+    .cal-preview .big { font-size: 36px; font-weight: 900; color: var(--accent); }
+    .cal-preview .label { font-size: 12px; color: var(--text2); }
+
+    .submit-btn {
+      width: 100%; background: var(--accent); color: #0d1411;
+      border: none; border-radius: var(--radius); padding: 16px;
+      font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 800;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .submit-btn:active { opacity: .8; }
+    .submit-btn:disabled { opacity: .4; cursor: default; }
+
+    .food-suggestions {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .suggestion {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px; font-size: 13px;
+      cursor: pointer; transition: all .2s;
+      color: #e8f5ec !important; font-family: 'Heebo', sans-serif;
+      -webkit-appearance: none; appearance: none;
+    }
+    .suggestion:active { border-color: var(--accent); color: var(--accent) !important; }
+
+    /* ─── PROFILE ─── */
+    .profile-form { padding: 0 16px; }
+    .bmi-card {
+      margin: 0 16px 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .bmi-value { font-size: 48px; font-weight: 900; color: var(--accent); }
+    .bmi-label { font-size: 14px; color: var(--text2); }
+    .bmi-status { display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .bmi-low { background: #1e3a5f; color: #60a5fa; }
+    .bmi-normal { background: #14532d; color: #4ade80; }
+    .bmi-over { background: #431407; color: #fb923c; }
+    .bmi-obese { background: #450a0a; color: #f87171; }
+
+    .recommended-box {
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      border-radius: var(--radius-sm); padding: 16px; margin-bottom: 14px;
+    }
+    .recommended-box h3 { font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+    .recommended-box .cal { font-size: 28px; font-weight: 900; color: var(--accent); }
+    .recommended-box p { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: #000a; z-index: 200;
+      display: flex; align-items: flex-end;
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--surface); border-radius: 24px 24px 0 0;
+      width: 100%; padding: 20px 16px max(20px, env(safe-area-inset-bottom));
+      transform: translateY(100%); transition: transform .3s ease;
+      border-top: 1px solid var(--border);
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+    .modal h2 { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+
+    .toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
+      background: var(--accent); color: #0d1411;
+      padding: 10px 24px; border-radius: 20px; font-weight: 700; font-size: 14px;
+      z-index: 300; transition: transform .3s ease; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* install banner */
+    .install-banner {
+      margin: 0 16px 16px; background: var(--surface2);
+      border: 1px solid var(--accent); border-radius: var(--radius);
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .install-banner p { flex: 1; font-size: 13px; line-height: 1.4; }
+    .install-banner button {
+      flex-shrink: 0; background: var(--accent); color: #0d1411;
+      border: none; border-radius: 8px; padding: 8px 16px;
+      font-family: 'Heebo', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer;
+    }
+    .install-banner .close-banner {
+      background: none; color: var(--text2); padding: 4px; font-size: 18px;
+    }
+
+    /* ─── AI SEARCH ─── */
+    .ai-search-btn {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+      background: none; border: 1.5px dashed var(--border);
+      border-radius: var(--radius-sm); padding: 13px;
+      color: var(--text2); font-family: 'Heebo', sans-serif; font-size: 14px;
+      cursor: pointer; transition: all .2s; margin-bottom: 14px;
+    }
+    .ai-search-btn:hover { border-color: #22d3ee; color: #22d3ee; }
+    .ai-search-btn.loading { border-color: #22d3ee; color: #22d3ee; animation: pulse-border 1.2s ease-in-out infinite; }
+    @keyframes pulse-border { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .ai-search-btn svg { width: 16px; height: 16px; }
+
+    .ai-result-card {
+      background: #0a1f1f; border: 1px solid #22d3ee44;
+      border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px; display: none;
+    }
+    .ai-result-card.visible { display: block; }
+    .ai-result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .ai-result-header .ai-badge {
+      background: #22d3ee22; border: 1px solid #22d3ee55;
+      color: #22d3ee; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700;
+    }
+    .ai-result-header .ai-title { font-size: 13px; font-weight: 700; flex: 1; }
+    .ai-options { display: flex; flex-direction: column; gap: 7px; }
+    .ai-option {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 11px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; transition: border-color .2s;
+    }
+    .ai-option.selected { border-color: var(--accent); background: var(--accent-dim); }
+    .ai-option .opt-name { font-size: 13px; font-weight: 600; }
+    .ai-option .opt-desc { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .ai-option .opt-cal { font-size: 18px; font-weight: 900; color: var(--accent); }
+    .ai-option .opt-unit { font-size: 10px; color: var(--text2); }
+    .ai-note { font-size: 11px; color: #22d3ee88; margin-top: 8px; }
+    .ai-spinner {
+      width: 16px; height: 16px; border: 2px solid #22d3ee33;
+      border-top-color: #22d3ee; border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+
+    /* ─── ACTIVITY / BURN ─── */
+    .burn-card {
+      margin: 0 16px 12px; background: #0f1a2e; border: 1px solid #1e3a5f;
+      border-radius: var(--radius); padding: 16px;
+    }
+    .burn-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .burn-card-header h3 { font-size: 15px; font-weight: 700; color: #93c5fd; }
+    .burn-total { font-size: 22px; font-weight: 900; color: #60a5fa; }
+    .burn-total span { font-size: 12px; color: #3b82f6; font-weight: 400; }
+    .burn-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid #1e3a5f; font-size: 13px;
+    }
+    .burn-row:last-child { border-bottom: none; }
+    .burn-row-left { display: flex; align-items: center; gap: 8px; }
+    .burn-icon { font-size: 18px; width: 28px; text-align: center; }
+    .burn-name { font-weight: 600; }
+    .burn-meta { font-size: 11px; color: #64748b; margin-top: 1px; }
+    .burn-cal { color: #60a5fa; font-weight: 700; }
+    .burn-del { background: none; border: none; color: #334155; cursor: pointer; font-size: 14px; padding: 2px 6px; }
+    .burn-del:active { color: var(--danger); }
+
+    .add-burn-btn {
+      display: flex; align-items: center; gap: 10px;
+      width: calc(100% - 32px); margin: 0 16px 12px;
+      background: #0f1a2e; border: 1.5px dashed #1e3a5f;
+      border-radius: var(--radius-sm); padding: 12px 16px;
+      color: #3b82f6; font-family: 'Heebo', sans-serif; font-size: 14px; cursor: pointer;
+    }
+    .add-burn-btn:active { border-color: #60a5fa; }
+
+    /* steps quick-input */
+    .steps-bar {
+      margin: 0 16px 12px; background: #0f1a2e; border: 1px solid #1e3a5f;
+      border-radius: var(--radius-sm); padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .steps-icon { font-size: 22px; }
+    .steps-info { flex: 1; }
+    .steps-label { font-size: 11px; color: #64748b; margin-bottom: 4px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+    .steps-input-row { display: flex; align-items: center; gap: 8px; }
+    .steps-input {
+      width: 100px; background: #0a1020; border: 1px solid #1e3a5f;
+      border-radius: 8px; padding: 8px 10px; color: #93c5fd;
+      font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 700; outline: none;
+    }
+    .steps-save-btn {
+      background: #1e3a5f; border: none; border-radius: 8px; padding: 8px 14px;
+      color: #60a5fa; font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .steps-cal { font-size: 12px; color: #3b82f6; }
+
+    /* summary strip — shown under ring */
+    .summary-strip {
+      display: flex; gap: 8px; margin: 0 16px 12px;
+    }
+    .summary-pill {
+      flex: 1; border-radius: var(--radius-sm); padding: 10px 12px; text-align: center;
+    }
+    .sp-eat { background: #141f18; border: 1px solid var(--border); }
+    .sp-burn { background: #0f1a2e; border: 1px solid #1e3a5f; }
+    .sp-net  { background: #1a1410; border: 1px solid #3d2e1e; }
+    .sp-val  { font-size: 18px; font-weight: 900; }
+    .sp-lbl  { font-size: 10px; margin-top: 2px; }
+    .sp-eat .sp-val  { color: var(--accent); }
+    .sp-eat .sp-lbl  { color: var(--text2); }
+    .sp-burn .sp-val { color: #60a5fa; }
+    .sp-burn .sp-lbl { color: #3b82f6; }
+    .sp-net  .sp-val { color: #fb923c; }
+    .sp-net  .sp-lbl { color: #92400e; }
+
+    /* burn modal */
+    .burn-modal {
+      position: fixed; inset: 0; background: #000b; z-index: 200;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .burn-modal.open { opacity: 1; pointer-events: all; }
+    .burn-sheet {
+      background: var(--surface); border-radius: 24px 24px 0 0;
+      border-top: 1px solid var(--border); padding: 0 0 max(20px,env(safe-area-inset-bottom));
+      transform: translateY(100%); transition: transform .3s ease;
+    }
+    .burn-modal.open .burn-sheet { transform: translateY(0); }
+    .burn-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 14px auto 10px; }
+
+    /* stat section header */
+    .stat-section-title {
+      padding: 14px 16px 8px; font-size: 13px; font-weight: 800; color: var(--text2);
+      letter-spacing: .5px; text-transform: uppercase;
+    }
+    .stat-section-title.blue { color: #60a5fa; }
+    .stat-section-title.orange { color: #fb923c; }
+
+    /* dual bar chart */
+    .dual-bar-chart { margin: 0 16px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+    .dual-bar-chart h3 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .chart-legend { display: flex; gap: 14px; margin-bottom: 12px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 5px; }
+    .legend-item { font-size: 11px; color: var(--text2); display: flex; align-items: center; }
+    .dual-bars { display: flex; align-items: flex-end; gap: 4px; height: 70px; }
+    .dual-col { flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 100%; }
+    .d-bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 2px; }
+    .d-lbl { font-size: 7px; color: var(--text2); text-align: center; margin-top: 3px; white-space: nowrap; }
+    .dual-col-wrap { flex: 1; display: flex; flex-direction: column; align-items: stretch; }
+
+    /* ─── RECIPES ─── */
+    .recipe-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); margin: 0 16px 12px; overflow: hidden;
+    }
+    .recipe-card-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; cursor: pointer;
+    }
+    .recipe-emoji {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--surface2); display: flex; align-items: center;
+      justify-content: center; font-size: 22px; flex-shrink: 0;
+    }
+    .recipe-info { flex: 1; min-width: 0; }
+    .recipe-name { font-size: 15px; font-weight: 700; }
+    .recipe-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .recipe-cal-badge {
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 14px; font-weight: 800; color: var(--accent); flex-shrink: 0;
+    }
+    .recipe-body { border-top: 1px solid var(--border); padding: 12px 16px; display: none; }
+    .recipe-body.open { display: block; }
+    .ingredient-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 0; border-bottom: 1px solid var(--surface2); font-size: 13px;
+    }
+    .ingredient-row:last-child { border-bottom: none; }
+    .ing-name { flex: 1; }
+    .ing-amount { color: var(--text2); font-size: 12px; width: 70px; text-align: left; }
+    .ing-cal { color: var(--accent); font-weight: 700; width: 50px; text-align: left; }
+    .recipe-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .btn-add-recipe {
+      flex: 2; background: var(--accent); color: #0d1411;
+      border: none; border-radius: var(--radius-sm); padding: 11px;
+      font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 800; cursor: pointer;
+    }
+    .btn-edit-recipe {
+      flex: 1; background: var(--surface2); color: var(--text2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px;
+      font-family: 'Heebo', sans-serif; font-size: 13px; cursor: pointer;
+    }
+    .btn-del-recipe {
+      background: none; color: var(--text2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 11px 13px;
+      font-family: 'Heebo', sans-serif; font-size: 13px; cursor: pointer;
+    }
+    .new-recipe-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: calc(100% - 32px); margin: 0 16px 16px;
+      background: none; border: 1.5px dashed var(--border);
+      border-radius: var(--radius); padding: 15px;
+      color: var(--text2); font-family: 'Heebo', sans-serif; font-size: 14px; cursor: pointer;
+    }
+    /* Recipe Builder Modal */
+    .rb-modal {
+      position: fixed; inset: 0; background: #000b; z-index: 200;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .rb-modal.open { opacity: 1; pointer-events: all; }
+    .rb-sheet {
+      background: var(--surface); border-radius: 24px 24px 0 0;
+      border-top: 1px solid var(--border);
+      max-height: 92dvh; display: flex; flex-direction: column;
+      transform: translateY(100%); transition: transform .3s ease;
+    }
+    .rb-modal.open .rb-sheet { transform: translateY(0); }
+    .rb-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 14px auto 0; flex-shrink: 0; }
+    .rb-header { padding: 14px 16px 10px; flex-shrink: 0; }
+    .rb-header h2 { font-size: 20px; font-weight: 800; }
+    .rb-scroll { overflow-y: auto; padding: 0 16px 8px; flex: 1; }
+    .rb-footer { padding: 10px 16px max(16px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); flex-shrink: 0; }
+    .ing-builder-row { display: flex; gap: 7px; align-items: flex-end; margin-bottom: 8px; }
+    .ing-builder-row .form-input { font-size: 13px; padding: 10px 12px; }
+    .ing-name-wrap { flex: 2; }
+    .ing-amount-wrap { flex: 1; }
+    .ing-cal-wrap { width: 72px; }
+    .ing-del-btn {
+      background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      color: var(--text2); padding: 10px 11px; cursor: pointer; flex-shrink: 0; font-size: 14px; line-height: 1;
+    }
+    .add-ing-btn {
+      width: 100%; background: none; border: 1px dashed var(--border);
+      border-radius: var(--radius-sm); padding: 10px; color: var(--text2);
+      font-family: 'Heebo', sans-serif; font-size: 13px; cursor: pointer; margin-bottom: 14px;
+    }
+    .rb-total-row {
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .rb-total-label { font-size: 13px; color: var(--text2); }
+    .rb-total-val { font-size: 22px; font-weight: 900; color: var(--accent); }
+    .recipe-chips { padding: 0 16px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; }
+    .recipe-chips::-webkit-scrollbar { display: none; }
+    .recipe-chip {
+      flex-shrink: 0; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 8px 14px; display: flex; align-items: center; gap: 7px;
+      cursor: pointer; white-space: nowrap;
+    }
+    .recipe-chip:active { border-color: var(--accent); background: var(--accent-dim); }
+    .recipe-chip .chip-emoji { font-size: 16px; }
+    .recipe-chip .chip-name { font-size: 13px; font-weight: 600; }
+    .recipe-chip .chip-cal { font-size: 11px; color: var(--accent); font-weight: 700; }
+
+  </style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL: ADD FOOD -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>➕ הוסף ארוחה</h2>
+    <div class="form-group">
+      <label class="form-label">שם המאכל</label>
+      <input class="form-input" id="modalFoodName" type="text" placeholder="לדוג׳: שניצל, תפוח, לחם..." />
+    </div>
+    <div class="food-suggestions" id="modalSuggestions"></div>
+    <div class="form-group">
+      <label class="form-label">כמות ויחידה</label>
+      <div style="display:flex;gap:8px;">
+        <input class="form-input" id="modalAmount" type="number" placeholder="100" min="1" style="flex:2" />
+        <select class="form-input" id="modalUnit" style="flex:1">
+          <option value="g">גרם</option>
+          <option value="unit">יחידה</option>
+          <option value="ml">מ"ל</option>
+          <option value="tbsp">כף</option>
+          <option value="tsp">כפית</option>
+          <option value="cup">כוס</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="modalCalPerLabel">קלוריות ל-100 גרם (ריק = אוטומטי)</label>
+      <input class="form-input" id="modalCalPer" type="number" placeholder="אוטומטי" min="0" />
+    </div>
+    <div class="cal-preview" id="modalPreview" style="display:none">
+      <div class="big" id="modalPreviewVal">0</div>
+      <div class="label">קלוריות בארוחה זו</div>
+    </div>
+    <button class="submit-btn" id="modalSubmit" onclick="submitMeal()">הוסף לרישום</button>
+  </div>
+</div>
+
+<!-- ════════ PAGE: TODAY ════════ -->
+<div class="page active" id="page-today">
+  <div class="page-header">
+    <h1 id="todayGreeting">בוקר טוב 👋</h1>
+    <p id="todayDate"></p>
+  </div>
+
+  <div id="installBanner" class="install-banner" style="display:none">
+    <p>📲 התקן את האפליקציה על הטלפון לגישה מהירה!</p>
+    <button onclick="installApp()">התקן</button>
+    <button class="close-banner" onclick="document.getElementById('installBanner').style.display='none'">✕</button>
+  </div>
+
+  <div class="ring-card">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 100 100">
+        <circle class="ring-bg" cx="50" cy="50" r="42"/>
+        <circle class="ring-fg" id="calRing" cx="50" cy="50" r="42"
+          stroke-dasharray="264" stroke-dashoffset="264"/>
+      </svg>
+      <div class="ring-label">
+        <div class="ring-cal" id="todayCalTotal">0</div>
+        <div class="ring-sub">קק"ל היום</div>
+      </div>
+    </div>
+    <div class="ring-info">
+      <h2>סיכום יומי</h2>
+      <div class="macro-row">
+        <div class="macro-pill" id="goalPill">יעד: <span id="goalVal">—</span></div>
+        <div class="macro-pill" id="remainPill">נותר: <span id="remainVal">—</span></div>
+      </div>
+      <div style="margin-top:10px; font-size:12px; color:var(--text2)" id="mealCountText"></div>
+    </div>
+  </div>
+
+  <!-- SUMMARY STRIP: eat / burn / net — always separate -->
+  <div class="summary-strip" id="summaryStrip">
+    <div class="summary-pill sp-eat">
+      <div class="sp-val" id="sumEat">0</div>
+      <div class="sp-lbl">🍽 נאכל</div>
+    </div>
+    <div class="summary-pill sp-burn">
+      <div class="sp-val" id="sumBurn">0</div>
+      <div class="sp-lbl">🔥 נשרף</div>
+    </div>
+    <div class="summary-pill sp-net">
+      <div class="sp-val" id="sumNet">0</div>
+      <div class="sp-lbl">⚖️ יתרה לאכול</div>
+    </div>
+  </div>
+
+  <button class="quick-add-btn" onclick="openModal()">
+    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+    </svg>
+    הוסף ארוחה / מאכל
+  </button>
+
+  <!-- QUICK RECIPE CHIPS -->
+  <div id="todayRecipeChips" class="recipe-chips" style="display:none"></div>
+
+  <!-- STEPS BAR -->
+  <div class="steps-bar">
+    <div class="steps-icon">🚶</div>
+    <div class="steps-info">
+      <div class="steps-label">צעדים היום</div>
+      <div class="steps-input-row">
+        <input class="steps-input" id="stepsInput" type="number" placeholder="0" min="0" oninput="updateStepsPreview()" />
+        <button class="steps-save-btn" onclick="saveSteps()">שמור</button>
+        <span class="steps-cal" id="stepsCalPreview"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BURN ACTIVITIES -->
+  <button class="add-burn-btn" onclick="openBurnModal()">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+    הוסף פעילות גופנית 🔥
+  </button>
+  <div class="burn-card" id="burnCard" style="display:none">
+    <div class="burn-card-header">
+      <h3>🔥 פעילויות היום</h3>
+      <div class="burn-total" id="burnTotalDisplay">0 <span>קק"ל נשרפו</span></div>
+    </div>
+    <div id="burnList"></div>
+  </div>
+
+  <div class="section-label">ארוחות היום</div>
+  <div class="meals-list" id="mealsList"></div>
+</div>
+
+<!-- ════════ PAGE: STATS ════════ -->
+<div class="page" id="page-stats">
+  <div class="page-header">
+    <h1>📊 סטטיסטיקות</h1>
+    <p>אכילה ופעילות — כל דבר בנפרד</p>
+  </div>
+
+  <div class="stats-tabs">
+    <button class="tab-btn active" onclick="setStatsTab('week',this)">שבוע</button>
+    <button class="tab-btn" onclick="setStatsTab('month',this)">חודש</button>
+    <button class="tab-btn" onclick="setStatsTab('alltime',this)">הכל</button>
+  </div>
+
+  <!-- EAT SECTION -->
+  <div class="stat-section-title">🍽 קלוריות שנאכלו</div>
+  <div class="stat-cards" id="statCards"></div>
+  <div class="dual-bar-chart">
+    <h3 id="barChartTitle">7 הימים האחרונים</h3>
+    <div class="chart-legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#4ade80"></span>נאכל</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#60a5fa"></span>נשרף</div>
+    </div>
+    <div class="dual-bars" id="barsContainer"></div>
+  </div>
+
+  <!-- BURN SECTION -->
+  <div class="stat-section-title blue">🔥 קלוריות שנשרפו</div>
+  <div class="stat-cards" id="burnStatCards"></div>
+  <div class="bar-chart" style="margin:0 16px 14px;">
+    <h3>פעילויות גופניות + צעדים</h3>
+    <div class="bars" id="burnBarsContainer"></div>
+  </div>
+
+  <!-- NET NOTE -->
+  <div style="margin:0 16px 16px;background:#1a1410;border:1px solid #3d2e1e;border-radius:var(--radius-sm);padding:14px;font-size:12px;line-height:1.6;color:#92400e;">
+    <div style="font-weight:700;color:#fb923c;margin-bottom:4px;">⚖️ הסבר החישוב</div>
+    קלוריות שנאכלו ושנשרפו מוצגות <strong style="color:#fb923c">בנפרד לחלוטין</strong>. 
+    הפעילות הגופנית <strong style="color:#fb923c">לא מפחיתה</strong> מהיעד היומי לאכילה — 
+    כך תוכלי לראות את תמונת התזונה האמיתית שלך ללא עירוב.
+  </div>
+</div>
+
+<!-- ════════ PAGE: ADD ════════ -->
+<div class="page" id="page-add">
+  <div class="page-header">
+    <h1>🍽 הוסף מזון</h1>
+    <p>רשום מה אכלת</p>
+  </div>
+  <div class="add-form">
+    <div class="form-group">
+      <label class="form-label">שם המאכל</label>
+      <input class="form-input" id="foodName" type="text" placeholder="לדוג׳: אורז, עוף, בננה..." oninput="updateSuggestions()" />
+    </div>
+    <div class="food-suggestions" id="suggestions"></div>
+    <div class="form-group">
+      <label class="form-label">כמות ויחידה</label>
+      <div style="display:flex;gap:8px;">
+        <input class="form-input" id="amount" type="number" placeholder="100" min="1" oninput="updatePreview()" style="flex:2" />
+        <select class="form-input" id="amountUnit" onchange="updatePreview()" style="flex:1">
+          <option value="g">גרם</option>
+          <option value="unit">יחידה</option>
+          <option value="ml">מ"ל</option>
+          <option value="tbsp">כף</option>
+          <option value="tsp">כפית</option>
+          <option value="cup">כוס</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" id="calPerGroup">
+      <label class="form-label" id="calPerLabel">קלוריות ל-100 גרם (ריק = אוטומטי)</label>
+      <input class="form-input" id="calPer" type="number" placeholder="אוטומטי" min="0" oninput="updatePreview()" />
+    </div>
+
+    <!-- AI SEARCH BUTTON -->
+    <button class="ai-search-btn" id="aiSearchBtn" onclick="aiSearchCalories()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+      </svg>
+      <span id="aiSearchLabel">מאכל לא במאגר? שאל את Claude 🤖</span>
+    </button>
+
+    <!-- AI RESULT CARD -->
+    <div class="ai-result-card" id="aiResultCard">
+      <div class="ai-result-header">
+        <span class="ai-badge">🤖 AI</span>
+        <span class="ai-title" id="aiResultTitle">תוצאות חיפוש</span>
+      </div>
+      <div class="ai-options" id="aiOptions"></div>
+      <div class="ai-note" id="aiNote"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">זמן הארוחה</label>
+      <input class="form-input" id="mealTime" type="time" />
+    </div>
+    <div class="cal-preview" id="preview" style="display:none">
+      <div class="big" id="previewVal">0</div>
+      <div class="label">קלוריות בארוחה זו</div>
+    </div>
+    <button class="submit-btn" id="submitBtn" onclick="addMeal()" disabled>הוסף לרישום</button>
+  </div>
+</div>
+
+<!-- ════════ PAGE: RECIPES ════════ -->
+<div class="page" id="page-recipes">
+  <div class="page-header">
+    <h1>⭐ המתכונים שלי</h1>
+    <p>ארוחות ומשקאות אישיים</p>
+  </div>
+  <div id="recipesList"></div>
+  <button class="new-recipe-btn" onclick="openRbModal()">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+    צור מתכון חדש
+  </button>
+</div>
+
+<!-- ════════ PAGE: PROFILE ════════ -->
+<div class="page" id="page-profile">
+  <div class="page-header">
+    <h1>👤 פרופיל</h1>
+    <p>הגדרות אישיות ו-BMI</p>
+  </div>
+
+  <div class="bmi-card" id="bmiCard" style="display:none">
+    <div style="font-size:12px; color:var(--text2); margin-bottom:4px">מדד מסת גוף</div>
+    <div class="bmi-value" id="bmiValue">—</div>
+    <div class="bmi-label" id="bmiLabel"></div>
+    <span class="bmi-status" id="bmiStatus"></span>
+  </div>
+
+  <div class="profile-form">
+    <div class="recommended-box" id="recommendedBox" style="display:none">
+      <h3>צריכת קלוריות מומלצת ליום</h3>
+      <div class="cal" id="recommendedCal">—</div>
+      <p id="recommendedNote"></p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">שם</label>
+      <input class="form-input" id="profileName" type="text" placeholder="השם שלך" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">גיל</label>
+      <input class="form-input" id="profileAge" type="number" placeholder="30" min="10" max="120" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">מין</label>
+      <select class="form-input" id="profileGender">
+        <option value="">בחר...</option>
+        <option value="male">זכר</option>
+        <option value="female">נקבה</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">גובה (ס"מ)</label>
+      <input class="form-input" id="profileHeight" type="number" placeholder="170" min="100" max="250" oninput="calcBMI()" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">משקל (ק"ג)</label>
+      <input class="form-input" id="profileWeight" type="number" placeholder="70" min="30" max="300" oninput="calcBMI()" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">רמת פעילות גופנית</label>
+      <select class="form-input" id="profileActivity" onchange="calcBMI()">
+        <option value="1.2">יושבני (עבודה במשרד, ללא פעילות)</option>
+        <option value="1.375">קל (1-3 אימונים בשבוע)</option>
+        <option value="1.55">בינוני (3-5 אימונים בשבוע)</option>
+        <option value="1.725">אינטנסיבי (6-7 אימונים בשבוע)</option>
+        <option value="1.9">מקצועי (אימונים כפולים)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">יעד</label>
+      <select class="form-input" id="profileGoal" onchange="calcBMI()">
+        <option value="maintain">שמירה על משקל</option>
+        <option value="lose">ירידה במשקל</option>
+        <option value="gain">עלייה במשקל</option>
+      </select>
+    </div>
+    <button class="submit-btn" onclick="saveProfile()">שמור פרופיל</button>
+  </div>
+</div>
+
+
+
+<!-- ════════ BURN ACTIVITY MODAL ════════ -->
+<div class="burn-modal" id="burnModal">
+  <div class="burn-sheet">
+    <div class="burn-handle"></div>
+    <div style="padding:0 16px 16px;">
+      <h2 style="font-size:19px;font-weight:800;margin-bottom:14px;">🔥 הוסף פעילות גופנית</h2>
+
+      <div class="form-group">
+        <label class="form-label">סוג פעילות</label>
+        <select class="form-input" id="burnActivity" onchange="updateBurnPreview()">
+          <option value="">בחר פעילות...</option>
+          <optgroup label="הליכה וריצה">
+            <option value="walk_slow|3">הליכה איטית (3 קמ"ש)</option>
+            <option value="walk_med|4">הליכה בינונית (4-5 קמ"ש)</option>
+            <option value="walk_fast|5.5">הליכה מהירה (5-6 קמ"ש)</option>
+            <option value="run_jog|7">ריצה קלה (7 קמ"ש)</option>
+            <option value="run_med|8.5">ריצה בינונית (8-9 קמ"ש)</option>
+            <option value="run_fast|11">ריצה מהירה (10+ קמ"ש)</option>
+          </optgroup>
+          <optgroup label="אופניים">
+            <option value="bike_easy|5">אופניים קל (עד 15 קמ"ש)</option>
+            <option value="bike_med|7">אופניים בינוני (15-20 קמ"ש)</option>
+            <option value="bike_hard|10">אופניים מהיר (20+ קמ"ש)</option>
+          </optgroup>
+          <optgroup label="כושר">
+            <option value="gym_weights|4">חדר כושר / משקולות</option>
+            <option value="yoga|2.5">יוגה / פילאטיס</option>
+            <option value="hiit|8">HIIT / אינטרוולים</option>
+            <option value="swim|6">שחייה</option>
+            <option value="aerobics|5">אירובי / ספינינג</option>
+            <option value="dance|4">ריקוד</option>
+            <option value="stretch|1.5">מתיחות / שחרור</option>
+          </optgroup>
+          <optgroup label="ספורט">
+            <option value="basketball|6">כדורסל</option>
+            <option value="soccer|7">כדורגל</option>
+            <option value="tennis|5.5">טניס</option>
+            <option value="volleyball|3">כדורעף</option>
+            <option value="martial_arts|7.5">אמנויות לחימה</option>
+          </optgroup>
+          <optgroup label="יומיומי">
+            <option value="housework|2.5">עבודות בית</option>
+            <option value="gardening|3.5">גינון</option>
+            <option value="stairs|4">עליית מדרגות</option>
+            <option value="shopping|2">קניות / הליכה בקניון</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">משך (דקות)</label>
+        <input class="form-input" id="burnDuration" type="number" placeholder="30" min="1" max="300" oninput="updateBurnPreview()" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">משקל לחישוב (ק"ג) — ממולא אוטומטית מהפרופיל</label>
+        <input class="form-input" id="burnWeight" type="number" placeholder="70" min="30" max="200" oninput="updateBurnPreview()" />
+      </div>
+
+      <div class="cal-preview" id="burnPreview" style="display:none">
+        <div class="big" id="burnPreviewVal" style="color:#60a5fa">0</div>
+        <div class="label">קלוריות משוערות שנשרפו 🔥</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button onclick="closeBurnModal()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text2);cursor:pointer;">ביטול</button>
+        <button onclick="saveBurnActivity()" style="flex:2;background:#1d4ed8;color:#fff;border:none;border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">הוסף פעילות</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ RECIPE BUILDER MODAL ════════ -->
+<div class="rb-modal" id="rbModal">
+  <div class="rb-sheet">
+    <div class="rb-handle"></div>
+    <div class="rb-header">
+      <h2 id="rbTitle">✨ מתכון חדש</h2>
+    </div>
+    <div class="rb-scroll">
+      <div class="form-group">
+        <label class="form-label">שם המתכון</label>
+        <input class="form-input" id="rbName" type="text" placeholder='לדוג׳: השוקו שלי, הקפה שלי...' />
+      </div>
+      <div class="form-group">
+        <label class="form-label">אמוג׳י (אופציונלי)</label>
+        <input class="form-input" id="rbEmoji" type="text" placeholder="☕ 🍫 🥤 🍵" maxlength="2" style="font-size:22px;text-align:center;" />
+      </div>
+      <div class="section-label" style="padding:0 0 10px;">מרכיבים</div>
+      <div id="rbIngredients"></div>
+      <button class="add-ing-btn" onclick="rbAddIngredient()">+ הוסף מרכיב</button>
+      <div class="rb-total-row">
+        <span class="rb-total-label">סה"כ קלוריות במתכון</span>
+        <span class="rb-total-val" id="rbTotal">0 קק"ל</span>
+      </div>
+    </div>
+    <div class="rb-footer">
+      <div style="display:flex;gap:8px;">
+        <button onclick="closeRbModal()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text2);cursor:pointer;">ביטול</button>
+        <button onclick="saveRecipe()" style="flex:2;background:var(--accent);color:#0d1411;border:none;border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:16px;font-weight:800;cursor:pointer;">שמור מתכון</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── NAV ─── -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('today',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+    </svg>
+    היום
+  </button>
+  <button class="nav-btn" onclick="showPage('add',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v8M8 12h8"/>
+    </svg>
+    הוסף
+  </button>
+  <button class="nav-btn" onclick="showPage('recipes',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+    </svg>
+    מתכונים
+  </button>
+  <button class="nav-btn" onclick="showPage('stats',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+    </svg>
+    סטטיסטיקות
+  </button>
+  <button class="nav-btn" onclick="showPage('profile',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+    </svg>
+    פרופיל
+  </button>
+</nav>
+
+<script>
+// ─── FOOD DATABASE (200+ מאכלים) ────────────────────────────────────────────
+const FOODS = [
+  // ══ דגנים ולחם ══
+  {name:'אורז לבן מבושל',cal:130,cat:'דגנים'},{name:'אורז מלא מבושל',cal:111,cat:'דגנים'},
+  {name:'פסטה מבושלת',cal:158,cat:'דגנים'},{name:'פסטה מלאה מבושלת',cal:124,cat:'דגנים'},
+  {name:'לחם לבן',cal:265,cat:'דגנים'},{name:'לחם מחיטה מלאה',cal:247,cat:'דגנים'},
+  {name:'לחם שיפון',cal:259,cat:'דגנים'},{name:'לחם פיתה',cal:275,cat:'דגנים'},
+  {name:'לחם לאפה',cal:271,cat:'דגנים'},{name:'קוסקוס מבושל',cal:112,cat:'דגנים'},
+  {name:'קינואה מבושלת',cal:120,cat:'דגנים'},{name:'גריסים מבושלים',cal:83,cat:'דגנים'},
+  {name:'עדשים מבושלות',cal:116,cat:'דגנים'},{name:'שעועית שחורה מבושלת',cal:132,cat:'דגנים'},
+  {name:'שעועית לבנה מבושלת',cal:127,cat:'דגנים'},{name:'חומוס מבושל',cal:164,cat:'דגנים'},
+  {name:'אפונה מבושלת',cal:84,cat:'דגנים'},{name:'תירס מבושל',cal:86,cat:'דגנים'},
+  {name:'שיבולת שועל (קוורקר)',cal:371,cat:'דגנים'},{name:'גרנולה',cal:471,cat:'דגנים'},
+  {name:'קורנפלקס',cal:357,cat:'דגנים'},{name:'מוזלי',cal:363,cat:'דגנים'},
+  {name:'קרקר מלוח',cal:428,cat:'דגנים'},{name:'מצה',cal:390,cat:'דגנים'},
+  {name:'רוגלך',cal:415,cat:'דגנים'},{name:'בייגל',cal:272,cat:'דגנים'},
+  // ══ ירקות ══
+  {name:'גזר',cal:41,cat:'ירקות'},{name:'מלפפון',cal:15,cat:'ירקות'},
+  {name:'עגבנייה',cal:18,cat:'ירקות'},{name:'חסה',cal:15,cat:'ירקות'},
+  {name:'ברוקולי',cal:34,cat:'ירקות'},{name:'כרובית',cal:25,cat:'ירקות'},
+  {name:'כרוב לבן',cal:25,cat:'ירקות'},{name:'כרוב סגול',cal:31,cat:'ירקות'},
+  {name:'תרד',cal:23,cat:'ירקות'},{name:'פלפל אדום',cal:31,cat:'ירקות'},
+  {name:'פלפל ירוק',cal:20,cat:'ירקות'},{name:'פלפל צהוב',cal:27,cat:'ירקות'},
+  {name:'בצל',cal:40,cat:'ירקות'},{name:'בצל ירוק',cal:32,cat:'ירקות'},
+  {name:'שום',cal:149,cat:'ירקות'},{name:'סלרי',cal:16,cat:'ירקות'},
+  {name:'אספרגוס',cal:20,cat:'ירקות'},{name:'ארטישוק',cal:47,cat:'ירקות'},
+  {name:'חציל',cal:25,cat:'ירקות'},{name:'קישוא',cal:17,cat:'ירקות'},
+  {name:'דלעת',cal:26,cat:'ירקות'},{name:'אבוקדו',cal:160,cat:'ירקות'},
+  {name:'תפוח אדמה',cal:77,cat:'ירקות'},{name:'בטטה',cal:86,cat:'ירקות'},
+  {name:'צנון',cal:16,cat:'ירקות'},{name:'קולרבי',cal:27,cat:'ירקות'},
+  {name:'ביקיה (פול)',cal:88,cat:'ירקות'},{name:'פטרייה שמפיניון',cal:22,cat:'ירקות'},
+  {name:'פטרייה פורטובלו',cal:22,cat:'ירקות'},{name:'עולש',cal:23,cat:'ירקות'},
+  {name:'רוקט',cal:25,cat:'ירקות'},{name:'כוסברה',cal:23,cat:'ירקות'},
+  {name:'פטרוזיליה',cal:36,cat:'ירקות'},{name:'נענע',cal:70,cat:'ירקות'},
+  // ══ פירות ══
+  {name:'תפוח',cal:52,cat:'פירות'},{name:'אגס',cal:57,cat:'פירות'},
+  {name:'בננה',cal:89,cat:'פירות'},{name:'תפוז',cal:47,cat:'פירות'},
+  {name:'מנדרינה',cal:53,cat:'פירות'},{name:'לימון',cal:29,cat:'פירות'},
+  {name:'ענבים',cal:67,cat:'פירות'},{name:'תות שדה',cal:32,cat:'פירות'},
+  {name:'אוכמניות',cal:57,cat:'פירות'},{name:'פטל',cal:52,cat:'פירות'},
+  {name:'אבטיח',cal:30,cat:'פירות'},{name:'מלון',cal:34,cat:'פירות'},
+  {name:'מנגו',cal:60,cat:'פירות'},{name:'אנניס',cal:50,cat:'פירות'},
+  {name:'קיווי',cal:61,cat:'פירות'},{name:'אפרסק',cal:39,cat:'פירות'},
+  {name:'שזיף',cal:46,cat:'פירות'},{name:'משמש',cal:48,cat:'פירות'},
+  {name:'דובדבן',cal:50,cat:'פירות'},{name:'תמר מג׳הול',cal:277,cat:'פירות'},
+  {name:'תאנה טרייה',cal:74,cat:'פירות'},{name:'רימון',cal:83,cat:'פירות'},
+  {name:'אשכולית',cal:42,cat:'פירות'},{name:'פפאיה',cal:43,cat:'פירות'},
+  {name:'גויאבה',cal:68,cat:'פירות'},{name:'לונגן',cal:60,cat:'פירות'},
+  {name:'צימוקים',cal:299,cat:'פירות'},{name:'משמש מיובש',cal:241,cat:'פירות'},
+  {name:'שזיף מיובש',cal:240,cat:'פירות'},
+  // ══ בשר ועוף ══
+  {name:'חזה עוף מבושל',cal:165,cat:'בשר'},{name:'ירך עוף בעור',cal:209,cat:'בשר'},
+  {name:'שוק עוף',cal:184,cat:'בשר'},{name:'שניצל עוף',cal:230,cat:'בשר'},
+  {name:'כנפיים עוף',cal:203,cat:'בשר'},{name:'הודו פרוס',cal:104,cat:'בשר'},
+  {name:'קציצות עוף',cal:170,cat:'בשר'},{name:'סטייק בקר',cal:250,cat:'בשר'},
+  {name:'בשר טחון בקר 5%',cal:137,cat:'בשר'},{name:'בשר טחון בקר 15%',cal:215,cat:'בשר'},
+  {name:'אנטריקוט',cal:271,cat:'בשר'},{name:'פרגית',cal:173,cat:'בשר'},
+  {name:'כבד עוף',cal:167,cat:'בשר'},{name:'נקניק עוף',cal:178,cat:'בשר'},
+  {name:'המבורגר בקר',cal:295,cat:'בשר'},{name:'כבש (טלה)',cal:258,cat:'בשר'},
+  {name:'ברווז',cal:337,cat:'בשר'},{name:'מרק עוף',cal:15,cat:'בשר'},
+  // ══ דגים ומאכלי ים ══
+  {name:'סלמון',cal:208,cat:'דגים'},{name:'טונה בשימורים במים',cal:116,cat:'דגים'},
+  {name:'טונה בשימורים בשמן',cal:198,cat:'דגים'},{name:'דג לוקוס',cal:97,cat:'דגים'},
+  {name:'דג נילוס',cal:103,cat:'דגים'},{name:'דג אמנון',cal:128,cat:'דגים'},
+  {name:'דג מוסר',cal:96,cat:'דגים'},{name:'שרימפס מבושל',cal:99,cat:'דגים'},
+  {name:'קלמארי',cal:92,cat:'דגים'},{name:'סרדינים בשימורים',cal:208,cat:'דגים'},
+  {name:'מקרל',cal:205,cat:'דגים'},{name:'הרינג',cal:158,cat:'דגים'},
+  {name:'דג בורי',cal:128,cat:'דגים'},{name:'גפילטע פיש',cal:91,cat:'דגים'},
+  // ══ מוצרי חלב וביצים ══
+  {name:'ביצה שלמה',cal:155,cat:'חלב'},{name:'חלבון ביצה',cal:52,cat:'חלב'},
+  {name:'חלמון ביצה',cal:322,cat:'חלב'},{name:'חלב 3%',cal:61,cat:'חלב'},
+  {name:'חלב 1%',cal:42,cat:'חלב'},{name:'חלב שקדים',cal:17,cat:'חלב'},
+  {name:'חלב שיבולת שועל',cal:45,cat:'חלב'},{name:'חלב סויה',cal:43,cat:'חלב'},
+  {name:'יוגורט 3%',cal:61,cat:'חלב'},{name:'יוגורט 0%',cal:35,cat:'חלב'},
+  {name:'יוגורט יווני 0%',cal:57,cat:'חלב'},{name:'יוגורט יווני 5%',cal:97,cat:'חלב'},
+  {name:'קוטג׳ 5%',cal:86,cat:'חלב'},{name:'קוטג׳ 3%',cal:72,cat:'חלב'},
+  {name:'שמנת חמוצה',cal:193,cat:'חלב'},{name:'שמנת מתוקה',cal:340,cat:'חלב'},
+  {name:'גבינה צהובה 28%',cal:402,cat:'חלב'},{name:'גבינה צהובה 9%',cal:222,cat:'חלב'},
+  {name:'גבינה בולגרית 5%',cal:147,cat:'חלב'},{name:'גבינה בולגרית 16%',cal:263,cat:'חלב'},
+  {name:'גבינת פטה',cal:264,cat:'חלב'},{name:'גבינת מוצרלה',cal:280,cat:'חלב'},
+  {name:'גבינת פרמזן',cal:431,cat:'חלב'},{name:'ריקוטה',cal:174,cat:'חלב'},
+  {name:'גבינת שמנת',cal:342,cat:'חלב'},{name:'לבנה 5%',cal:95,cat:'חלב'},
+  {name:'לבנה 9%',cal:155,cat:'חלב'},{name:'גלידה וניל',cal:207,cat:'חלב'},
+  {name:'גלידת שמנת',cal:250,cat:'חלב'},
+  // ══ שומנים ואגוזים ══
+  {name:'שמן זית',cal:884,cat:'שומנים'},{name:'שמן קנולה',cal:884,cat:'שומנים'},
+  {name:'חמאה',cal:717,cat:'שומנים'},{name:'מרגרינה',cal:717,cat:'שומנים'},
+  {name:'מיונז',cal:680,cat:'שומנים'},{name:'טחינה גולמית',cal:592,cat:'שומנים'},
+  {name:'אגוזי מלך',cal:654,cat:'שומנים'},{name:'שקדים',cal:579,cat:'שומנים'},
+  {name:'קשיו',cal:553,cat:'שומנים'},{name:'פיסטוקים',cal:562,cat:'שומנים'},
+  {name:'בוטנים',cal:567,cat:'שומנים'},{name:'חמניות גרעינים',cal:584,cat:'שומנים'},
+  {name:'דלעת גרעינים',cal:541,cat:'שומנים'},{name:'חמאת בוטנים',cal:588,cat:'שומנים'},
+  {name:'חמאת שקדים',cal:614,cat:'שומנים'},{name:'זיתים שחורים',cal:115,cat:'שומנים'},
+  {name:'זיתים ירוקים',cal:145,cat:'שומנים'},
+  // ══ מאכלים ישראליים ══
+  {name:'חומוס (ממרח)',cal:166,cat:'ישראלי'},{name:'פלאפל (כדור)',cal:57,cat:'ישראלי'},
+  {name:'שקשוקה',cal:90,cat:'ישראלי'},{name:'סלט ישראלי',cal:35,cat:'ישראלי'},
+  {name:'מלוואח',cal:357,cat:'ישראלי'},{name:'ג׳חנון',cal:300,cat:'ישראלי'},
+  {name:'בורקס גבינה',cal:330,cat:'ישראלי'},{name:'בורקס תפוח אדמה',cal:295,cat:'ישראלי'},
+  {name:'סביח',cal:250,cat:'ישראלי'},{name:'שוורמה עוף',cal:220,cat:'ישראלי'},
+  {name:'שוורמה הודו',cal:190,cat:'ישראלי'},{name:'קובה סולת',cal:185,cat:'ישראלי'},
+  {name:'עלי גפן',cal:180,cat:'ישראלי'},{name:'מוסקה',cal:140,cat:'ישראלי'},
+  {name:'בבקה שוקולד',cal:390,cat:'ישראלי'},{name:'רוגלך',cal:415,cat:'ישראלי'},
+  {name:'קרמבו',cal:79,cat:'ישראלי'},{name:'עוגת תפוזים',cal:320,cat:'ישראלי'},
+  // ══ פאסט פוד ══
+  {name:'פיצה גבינה (פרוסה)',cal:266,cat:'פאסט פוד'},{name:'המבורגר קלאסי',cal:295,cat:'פאסט פוד'},
+  {name:'המבורגר כפול',cal:520,cat:'פאסט פוד'},{name:'צ׳יפס מנה',cal:312,cat:'פאסט פוד'},
+  {name:'כנפיים מטוגנות (3)',cal:350,cat:'פאסט פוד'},{name:'שניצל מטוגן',cal:290,cat:'פאסט פוד'},
+  {name:'כריך תונה',cal:320,cat:'פאסט פוד'},{name:'כריך ביצה',cal:295,cat:'פאסט פוד'},
+  {name:'סושי (8 יח׳)',cal:280,cat:'פאסט פוד'},{name:'ספרינג רול',cal:100,cat:'פאסט פוד'},
+  {name:'נאגטס עוף (6)',cal:300,cat:'פאסט פוד'},{name:'קציצת פלאפל גדולה',cal:120,cat:'פאסט פוד'},
+  // ══ ממתקים ומאפים ══
+  {name:'שוקולד חלב',cal:546,cat:'ממתקים'},{name:'שוקולד מריר 70%',cal:579,cat:'ממתקים'},
+  {name:'ממרח שוקולד',cal:547,cat:'ממתקים'},{name:'עוגיות אוריאו',cal:471,cat:'ממתקים'},
+  {name:'עוגיות שיבולת שועל',cal:421,cat:'ממתקים'},{name:'ביסקוויט',cal:450,cat:'ממתקים'},
+  {name:'עוגת שוקולד',cal:371,cat:'ממתקים'},{name:'עוגת גבינה',cal:321,cat:'ממתקים'},
+  {name:'מאפין',cal:378,cat:'ממתקים'},{name:'קרואסון',cal:406,cat:'ממתקים'},
+  {name:'דונאט',cal:452,cat:'ממתקים'},{name:'לחמנייה',cal:280,cat:'ממתקים'},
+  {name:'דבש',cal:304,cat:'ממתקים'},{name:'ריבה',cal:278,cat:'ממתקים'},
+  {name:'סוכר',cal:387,cat:'ממתקים'},{name:'גומי',cal:330,cat:'ממתקים'},
+  {name:'שוקולד לבן',cal:539,cat:'ממתקים'},{name:'חלבה',cal:469,cat:'ממתקים'},
+  // ══ שתייה ══
+  {name:'אבקת קפה שחור',cal:353,cat:'שתייה'},{name:'קפה שחור (משקה)',cal:2,cat:'שתייה'},
+  {name:'קפה עם חלב',cal:30,cat:'שתייה'},{name:'קפה הפוך',cal:67,cat:'שתייה'},
+  {name:'קפוצ׳ינו',cal:74,cat:'שתייה'},{name:'אבקת נס קפה',cal:353,cat:'שתייה'},
+  {name:'לטה',cal:95,cat:'שתייה'},{name:'תה ללא סוכר',cal:1,cat:'שתייה'},
+  {name:'מיץ תפוזים טבעי',cal:45,cat:'שתייה'},{name:'מיץ תפוחים',cal:46,cat:'שתייה'},
+  {name:'מיץ ענבים',cal:60,cat:'שתייה'},{name:'מיץ אשכולית',cal:39,cat:'שתייה'},
+  {name:'קולה',cal:42,cat:'שתייה'},{name:'קולה דיאט',cal:1,cat:'שתייה'},
+  {name:'ספרייט',cal:41,cat:'שתייה'},{name:'אנרגיה (רד בול)',cal:45,cat:'שתייה'},
+  {name:'בירה (330מל)',cal:43,cat:'שתייה'},{name:'בירה כהה (330מל)',cal:55,cat:'שתייה'},
+  {name:'יין לבן',cal:82,cat:'שתייה'},{name:'יין אדום',cal:85,cat:'שתייה'},
+  {name:'וודקה',cal:231,cat:'שתייה'},{name:'ויסקי',cal:250,cat:'שתייה'},
+  {name:'מים',cal:0,cat:'שתייה'},{name:'מים מוגזים',cal:0,cat:'שתייה'},
+  {name:'מי קוקוס',cal:19,cat:'שתייה'},{name:'שוקו',cal:68,cat:'שתייה'},
+  // ══ תוספי תזונה ══
+  {name:'אבקת חלבון (מנה)',cal:120,cat:'תוספים'},{name:'קרייטין (מנה)',cal:0,cat:'תוספים'},
+  {name:'שייק חלבון מוכן',cal:150,cat:'תוספים'},{name:'חטיף חלבון',cal:200,cat:'תוספים'},
+  {name:'אמינו חומצות',cal:20,cat:'תוספים'},
+];
+
+// ─── STORAGE ─────────────────────────────────────────────────────────────────
+function save(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+function load(k, def=null){ try{const d=localStorage.getItem(k); return d?JSON.parse(d):def;}catch{return def;} }
+
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function getAllLogs(){
+  const keys = Object.keys(localStorage).filter(k => k.match(/^\d{4}-\d{2}-\d{2}$/));
+  const logs = {};
+  keys.forEach(k => { logs[k] = JSON.parse(localStorage.getItem(k)||'[]'); });
+  return logs;
+}
+function getTodayMeals(){ return load(todayKey(), []); }
+function saveTodayMeals(meals){ save(todayKey(), meals); }
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showPage(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(id==='today') renderToday();
+  if(id==='stats') renderStats('week');
+  if(id==='profile') renderProfile();
+  if(id==='recipes') renderRecipes();
+}
+
+// ─── GREETING ────────────────────────────────────────────────────────────────
+function initGreeting(){
+  const h = new Date().getHours();
+  const name = load('profile',{}).name || '';
+  const greets = h<12?'בוקר טוב':h<17?'צהריים טובים':'ערב טוב';
+  document.getElementById('todayGreeting').textContent = greets + (name?' '+name+' 👋':' 👋');
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'});
+}
+
+// ─── RENDER TODAY ────────────────────────────────────────────────────────────
+function renderToday(){
+  initGreeting();
+  renderTodayRecipeChips();
+  const meals = getTodayMeals();
+  const total = meals.reduce((s,m)=>s+m.cal,0);
+  const profile = load('profile',{});
+  const goal = profile.recommendedCal || 0;
+
+  document.getElementById('todayCalTotal').textContent = total;
+  document.getElementById('mealCountText').textContent = `${meals.length} ארוחות רשומות`;
+
+  // ring
+  const circumference = 264;
+  const pct = goal ? Math.min(total/goal,1) : 0;
+  const offset = circumference - (pct * circumference);
+  const ring = document.getElementById('calRing');
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = total > goal && goal > 0 ? '#f87171' : '#4ade80';
+
+  // pills
+  document.getElementById('goalVal').textContent = goal ? goal+' קק"ל' : 'לא הוגדר';
+  if(goal){
+    const rem = goal - total;
+    document.getElementById('remainVal').textContent = (rem>=0?rem:0)+' קק"ל';
+    document.getElementById('remainPill').style.color = rem<0 ? 'var(--danger)' : '';
+  } else {
+    document.getElementById('remainVal').textContent = '—';
+  }
+
+  // meals list
+  const list = document.getElementById('mealsList');
+  if(!meals.length){
+    list.innerHTML = `<div class="empty-state"><div class="icon">🍽</div><p>עדיין לא רשמת ארוחות היום<br>לחץ "הוסף ארוחה" כדי להתחיל</p></div>`;
+    return;
+  }
+  list.innerHTML = meals.map((m,i)=>`
+    <div class="meal-item">
+      <div>
+        <div class="meal-name">${m.name}</div>
+        <div class="meal-meta">${m.amount}${m.unit||'ג'} · ${m.time||''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="meal-cal">${m.cal}</div>
+        <button class="meal-delete" onclick="deleteMeal(${i})">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function deleteMeal(i){
+  const meals = getTodayMeals();
+  meals.splice(i,1);
+  saveTodayMeals(meals);
+  renderToday();
+  showToast('ארוחה נמחקה');
+}
+
+// ─── FOOD SUGGESTIONS ───────────────────────────────────────────────────────
+function updateSuggestions(){
+  const q = document.getElementById('foodName').value.trim().toLowerCase();
+  const box = document.getElementById('suggestions');
+  if(!q){ box.innerHTML=''; return; }
+  const matches = FOODS.filter(f=>f.name.includes(q)).slice(0,6);
+  box.innerHTML = matches.map(f=>`
+    <button class="suggestion" onclick="selectFood('${f.name}',${f.cal},'add')">${f.name}</button>`).join('');
+  updatePreview();
+}
+
+function selectFood(name, calPer, mode){
+  if(mode==='add'){
+    document.getElementById('foodName').value = name;
+    document.getElementById('calPer').value = calPer;
+    document.getElementById('suggestions').innerHTML='';
+    // hide AI card if user picked a suggestion
+    document.getElementById('aiResultCard').classList.remove('visible');
+    updatePreview();
+  } else {
+    document.getElementById('modalFoodName').value = name;
+    document.getElementById('modalCalPer').value = calPer;
+    document.getElementById('modalSuggestions').innerHTML='';
+    updateModalPreview();
+  }
+}
+
+// ─── AI CALORIE SEARCH (ללא web search — חינמי לחלוטין) ────────────────────
+function getApiKey(){
+  return load('anthropic_key', '');
+}
+
+function saveApiKey(key){
+  save('anthropic_key', key.trim());
+}
+
+async function aiSearchCalories(){
+  const name = document.getElementById('foodName').value.trim();
+  if(!name){ showToast('⚠️ הזן שם מאכל קודם'); return; }
+
+  const apiKey = ''; // Key מנוהל ב-Cloudflare Worker
+
+  const btn = document.getElementById('aiSearchBtn');
+  const label = document.getElementById('aiSearchLabel');
+  const card = document.getElementById('aiResultCard');
+  const optionsEl = document.getElementById('aiOptions');
+  const noteEl = document.getElementById('aiNote');
+  const titleEl = document.getElementById('aiResultTitle');
+
+  btn.classList.add('loading');
+  label.innerHTML = `<span class="ai-spinner"></span> שואל את Claude על "${name}"...`;
+  card.classList.remove('visible');
+
+  try {
+    const prompt = `ערכי קלוריות עבור: "${name}".
+ענה בפורמט JSON בלבד, ללא מרכאות קוד:
+{"food":"שם המאכל","options":[{"label":"תיאור הכנה (מבושל/מטוגן/גולמי וכו׳)","cal_per_100g":123,"note":"הסבר קצר"}],"source_note":"בסיס USDA / ממוצע כללי"}
+כלול 1-3 אפשרויות לפי אופן ההכנה. קלוריות לכל 100 גרם.`;
+
+    const response = await fetch('https://calorie-proxy.ramieli.workers.dev/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if(response.status === 401){
+      throw new Error('API key error');
+    }
+
+    const data = await response.json();
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('');
+
+    const clean = text.replace(/```json|```/g, '').trim();
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('no JSON');
+    const result = JSON.parse(jsonMatch[0]);
+
+    titleEl.textContent = `תוצאות עבור: ${result.food || name}`;
+    optionsEl.innerHTML = result.options.map(opt => `
+      <div class="ai-option" onclick="selectAiOption(this, ${opt.cal_per_100g})">
+        <div>
+          <div class="opt-name">${opt.label}</div>
+          <div class="opt-desc">${opt.note || ''}</div>
+        </div>
+        <div style="text-align:left">
+          <div class="opt-cal">${opt.cal_per_100g}</div>
+          <div class="opt-unit">קק"ל/100ג</div>
+        </div>
+      </div>`).join('');
+    noteEl.textContent = result.source_note ? `ℹ️ ${result.source_note}` : '';
+    card.classList.add('visible');
+
+  } catch(err) {
+    card.classList.add('visible');
+    optionsEl.innerHTML = `<div style="color:var(--danger);font-size:13px;padding:8px">שגיאה. בדוק את ה-API key בהגדרות או הזן ערך ידנית.</div>`;
+    noteEl.textContent = '';
+    titleEl.textContent = 'לא נמצאו תוצאות';
+  } finally {
+    btn.classList.remove('loading');
+    label.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg> שאל את Claude 🤖`;
+  }
+}
+
+// ─── API KEY MODAL ────────────────────────────────────────────────────────────
+function showApiKeyModal(errorMsg=''){
+  const existing = document.getElementById('apiKeyModal');
+  if(existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'apiKeyModal';
+  overlay.style.cssText = `position:fixed;inset:0;background:#000a;z-index:250;display:flex;align-items:flex-end;`;
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;padding:20px 16px 32px;border-top:1px solid var(--border);">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <div style="width:36px;height:36px;background:#22d3ee22;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div>
+        <div>
+          <div style="font-size:17px;font-weight:800;">הגדרת Claude AI</div>
+          <div style="font-size:12px;color:var(--text2);">נדרש פעם אחת בלבד</div>
+        </div>
+      </div>
+
+      ${errorMsg ? `<div style="background:#450a0a;border:1px solid #f87171;border-radius:8px;padding:10px 12px;font-size:12px;color:#f87171;margin:12px 0;">${errorMsg}</div>` : ''}
+
+      <div style="background:var(--surface2);border-radius:12px;padding:14px;margin:14px 0;font-size:12px;line-height:1.7;color:var(--text2);">
+        <div style="font-weight:700;color:var(--text);margin-bottom:6px;">איך מקבלים מפתח חינמי:</div>
+        <div>1. היכנס ל־ <span style="color:#22d3ee;font-weight:600;">console.anthropic.com</span></div>
+        <div>2. לחץ <strong style="color:var(--text);">API Keys</strong> → <strong style="color:var(--text);">Create Key</strong></div>
+        <div>3. העתק את המפתח והדבק כאן</div>
+        <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">
+          💡 Anthropic נותנת <strong style="color:var(--accent);">$5 קרדיט חינם</strong> בהרשמה.<br>
+          כל חיפוש קלוריות עולה פחות מ־<strong style="color:var(--accent);">$0.001</strong>.
+        </div>
+      </div>
+
+      <label style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.5px;display:block;margin-bottom:6px;">ANTHROPIC API KEY</label>
+      <input id="apiKeyInput" type="password"
+        placeholder="sk-ant-api03-..."
+        value="${getApiKey()}"
+        style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'Heebo',sans-serif;font-size:13px;outline:none;margin-bottom:10px;"
+        oninput="this.style.borderColor=this.value.startsWith('sk-ant')?'var(--accent)':'var(--border)'"
+      />
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('apiKeyModal').remove()"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text2);cursor:pointer;">
+          ביטול
+        </button>
+        <button onclick="confirmApiKey()"
+          style="flex:2;background:var(--accent);color:#0d1411;border:none;border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">
+          שמור וחפש
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('apiKeyInput').focus(), 100);
+}
+
+function confirmApiKey(){
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if(!key.startsWith('sk-ant')){
+    showToast('⚠️ מפתח לא תקין — חייב להתחיל ב־sk-ant');
+    return;
+  }
+  saveApiKey(key);
+  document.getElementById('apiKeyModal').remove();
+  showToast('✅ מפתח נשמר!');
+  // הפעל חיפוש אוטומטית
+  setTimeout(aiSearchCalories, 300);
+}
+
+function selectAiOption(el, calPer){
+  // mark selected
+  document.querySelectorAll('.ai-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  // fill in the calories field
+  document.getElementById('calPer').value = calPer;
+  updatePreview();
+  showToast(`✅ ${calPer} קק"ל/100ג נבחר`);
+}
+
+function lookupCalories(name){
+  const f = FOODS.find(f=>f.name===name||f.name.includes(name)||name.includes(f.name));
+  return f ? f.cal : null;
+}
+
+// ─── ADD FORM ────────────────────────────────────────────────────────────────
+
+const UNIT_TO_GRAMS = {
+  'g': 1,
+  'ml': 1,
+  'unit': 100,  // default - will be overridden by food-specific weights
+  'tbsp': 15,
+  'tsp': 5,
+  'cup': 240
+};
+
+// משקל יחידה לפי מאכל (גרם ליחידה)
+const FOOD_UNIT_WEIGHT = {
+  'בננה': 120, 'תפוח': 180, 'אגס': 170, 'תפוז': 150, 'מנדרינה': 75,
+  'ביצה': 60, 'ביצה שלמה': 60, 'חלבון ביצה': 35, 'חלמון ביצה': 18,
+  'לחם לבן': 30, 'לחם מחיטה מלאה': 30, 'לחם פיתה': 65, 'לחם לאפה': 90,
+  'קרואסון': 80, 'דונאט': 75, 'מאפין': 120, 'בייגל': 100,
+  'תמר מג׳הול': 24, 'תאנה טרייה': 50, 'קיווי': 75, 'אפרסק': 150,
+  'שזיף': 70, 'משמש': 35, 'דובדבן': 8,
+  'פלאפל (כדור)': 17, 'קציצת פלאפל גדולה': 40,
+  'קרמבו': 28,
+};
+
+function getAmountInGrams(){
+  const amount = parseFloat(document.getElementById('amount').value) || 0;
+  const unit = document.getElementById('amountUnit')?.value || 'g';
+  const name = document.getElementById('foodName').value.trim();
+  if(unit === 'unit'){
+    // חפש משקל יחידה ספציפי למאכל, אחרת 100ג
+    const unitWeight = FOOD_UNIT_WEIGHT[name] || 100;
+    return amount * unitWeight;
+  }
+  return amount * (UNIT_TO_GRAMS[unit] || 1);
+}
+
+function updateCalPerLabel(){
+  const unit = document.getElementById('amountUnit')?.value || 'g';
+  const label = document.getElementById('calPerLabel');
+  if(!label) return;
+  if(unit === 'unit') label.textContent = 'קלוריות ליחידה (ריק = אוטומטי)';
+  else if(unit === 'ml') label.textContent = 'קלוריות ל-100 מ"ל (ריק = אוטומטי)';
+  else if(unit === 'tbsp') label.textContent = 'קלוריות לכף שטוחה (ריק = אוטומטי)';
+  else label.textContent = 'קלוריות ל-100 גרם (ריק = אוטומטי)';
+}
+
+function updatePreview(){
+  updateCalPerLabel();
+  const name = document.getElementById('foodName').value.trim();
+  const unit = document.getElementById('amountUnit')?.value || 'g';
+  let calPer = parseFloat(document.getElementById('calPer').value);
+  if(!calPer && name){ calPer = lookupCalories(name) || 0; }
+  const amount = parseFloat(document.getElementById('amount').value) || 0;
+  
+  let total;
+  if(unit === 'unit'){
+    // אם יחידה: calPer הוא קלוריות ליחידה אחת (לא ל-100ג)
+    // אם calPer מגיע מהמאגר (ל-100ג), נחשב לפי משקל היחידה
+    const unitWeight = FOOD_UNIT_WEIGHT[name] || 100;
+    const calPerUnit = calPer * unitWeight / 100;
+    total = Math.round(calPerUnit * amount);
+  } else {
+    total = Math.round(calPer * amount / 100);
+  }
+  
+  const preview = document.getElementById('preview');
+  const btn = document.getElementById('submitBtn');
+  if(name && amount && calPer){
+    preview.style.display='block';
+    document.getElementById('previewVal').textContent = total;
+    btn.disabled = false;
+  } else {
+    preview.style.display='none';
+    btn.disabled = true;
+  }
+}
+
+function addMeal(){
+  const name = document.getElementById('foodName').value.trim();
+  let calPer = parseFloat(document.getElementById('calPer').value);
+  if(!calPer && name){ calPer = lookupCalories(name) || 0; }
+  const amount = parseFloat(document.getElementById('amount').value)||100;
+  const unit = document.getElementById('amountUnit')?.value || 'g';
+  const time = document.getElementById('mealTime').value || new Date().toTimeString().slice(0,5);
+  if(!name || !calPer){ return; }
+  
+  let cal;
+  if(unit === 'unit'){
+    const unitWeight = FOOD_UNIT_WEIGHT[name] || 100;
+    cal = Math.round(calPer * unitWeight / 100 * amount);
+  } else {
+    cal = Math.round(calPer * amount / 100);
+  }
+  const unitLabel = unit === 'g' ? 'ג' : unit === 'ml' ? 'מ"ל' : unit === 'unit' ? 'יח׳' : unit === 'tbsp' ? 'כף' : unit === 'tsp' ? 'כפית' : 'כוס';
+  const meals = getTodayMeals();
+  meals.push({name, amount, calPer, cal, time, unit: unitLabel});
+  saveTodayMeals(meals);
+  // reset
+  ['foodName','calPer','amount'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('suggestions').innerHTML='';
+  document.getElementById('preview').style.display='none';
+  document.getElementById('submitBtn').disabled=true;
+  showToast(`✅ ${name} נוסף! (${cal} קק"ל)`);
+  showPage('today', document.querySelector('.nav-btn'));
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────────────
+function openModal(){
+  document.getElementById('addModal').classList.add('open');
+  document.getElementById('modalFoodName').focus();
+  document.getElementById('modalFoodName').oninput = () => {
+    const q = document.getElementById('modalFoodName').value.trim().toLowerCase();
+    const box = document.getElementById('modalSuggestions');
+    if(!q){ box.innerHTML=''; return; }
+    const matches = FOODS.filter(f=>f.name.includes(q)).slice(0,5);
+    box.innerHTML = matches.map(f=>`
+      <button class="suggestion" onclick="selectFood('${f.name}',${f.cal},'modal')">${f.name}</button>`).join('');
+    updateModalPreview();
+  };
+  document.getElementById('modalAmount').oninput = updateModalPreview;
+  document.getElementById('modalCalPer').oninput = updateModalPreview;
+  if(document.getElementById('modalUnit'))
+    document.getElementById('modalUnit').onchange = updateModalPreview;
+}
+
+function updateModalPreview(){
+  const name = document.getElementById('modalFoodName').value.trim();
+  let calPer = parseFloat(document.getElementById('modalCalPer').value);
+  if(!calPer && name){ calPer = lookupCalories(name)||0; }
+  const amount = parseFloat(document.getElementById('modalAmount').value)||0;
+  const unit = document.getElementById('modalUnit')?.value || 'g';
+  // update label
+  const lbl = document.getElementById('modalCalPerLabel');
+  if(lbl){
+    if(unit==='unit') lbl.textContent = 'קלוריות ל-100 גרם (לחישוב יחידה)';
+    else if(unit==='ml') lbl.textContent = 'קלוריות ל-100 מ"ל (ריק = אוטומטי)';
+    else if(unit==='tbsp') lbl.textContent = 'קלוריות ל-100 גרם (כף = 15ג)';
+    else if(unit==='tsp') lbl.textContent = 'קלוריות ל-100 גרם (כפית = 5ג)';
+    else if(unit==='cup') lbl.textContent = 'קלוריות ל-100 גרם (כוס = 240ג)';
+    else lbl.textContent = 'קלוריות ל-100 גרם (ריק = אוטומטי)';
+  }
+  let total;
+  if(unit==='unit'){ const uw=FOOD_UNIT_WEIGHT[name]||100; total=Math.round(calPer*uw/100*amount); }
+  else if(unit==='tbsp') total=Math.round(calPer*15/100*amount);
+  else if(unit==='tsp')  total=Math.round(calPer*5/100*amount);
+  else if(unit==='cup')  total=Math.round(calPer*240/100*amount);
+  else total=Math.round(calPer*amount/100);
+  const preview = document.getElementById('modalPreview');
+  if(name && amount && calPer){
+    preview.style.display='block';
+    document.getElementById('modalPreviewVal').textContent=total;
+  } else { preview.style.display='none'; }
+}
+
+function submitMeal(){
+  const name = document.getElementById('modalFoodName').value.trim();
+  let calPer = parseFloat(document.getElementById('modalCalPer').value);
+  if(!calPer && name){ calPer = lookupCalories(name)||0; }
+  const amount = parseFloat(document.getElementById('modalAmount').value)||100;
+  const unit = document.getElementById('modalUnit')?.value || 'g';
+  if(!name||!calPer){ showToast('⚠️ מלא שם וקלוריות'); return; }
+  let cal;
+  if(unit==='unit'){ const uw=FOOD_UNIT_WEIGHT[name]||100; cal=Math.round(calPer*uw/100*amount); }
+  else if(unit==='tbsp') cal=Math.round(calPer*15/100*amount);
+  else if(unit==='tsp')  cal=Math.round(calPer*5/100*amount);
+  else if(unit==='cup')  cal=Math.round(calPer*240/100*amount);
+  else cal=Math.round(calPer*amount/100);
+  const unitLabels = {g:'ג',ml:'מ"ל',unit:'יח׳',tbsp:'כף',tsp:'כפית',cup:'כוס'};
+  const time = new Date().toTimeString().slice(0,5);
+  const meals = getTodayMeals();
+  meals.push({name,amount,calPer,cal,time,unit:unitLabels[unit]||'ג'});
+  saveTodayMeals(meals);
+  document.getElementById('addModal').classList.remove('open');
+  ['modalFoodName','modalCalPer','modalAmount'].forEach(id=>document.getElementById(id).value='');
+  if(document.getElementById('modalUnit')) document.getElementById('modalUnit').value='g';
+  document.getElementById('modalPreview').style.display='none';
+  showToast(`✅ ${name} נוסף! (${cal} קק"ל)`);
+  renderToday();
+}
+
+document.getElementById('addModal').addEventListener('click',function(e){
+  if(e.target===this) this.classList.remove('open');
+});
+
+// ─── STATS ───────────────────────────────────────────────────────────────────
+let currentStatsTab = 'week';
+function setStatsTab(tab, btn){
+  currentStatsTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStats(tab);
+}
+
+function renderStats(tab){
+  const logs = getAllLogs();
+  const today = todayKey();
+  const profile = load('profile',{});
+  const goal = profile.recommendedCal || 2000;
+
+  // Get dates range
+  const now = new Date();
+  let days = [];
+  if(tab==='week'){ for(let i=6;i>=0;i--){ const d=new Date(now); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); } }
+  else if(tab==='month'){ for(let i=29;i>=0;i--){ const d=new Date(now); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); } }
+  else { days = Object.keys(logs).sort(); }
+
+  const calsByDay = days.map(d => (logs[d]||[]).reduce((s,m)=>s+m.cal,0));
+  const activeDays = calsByDay.filter(c=>c>0);
+  const avg = activeDays.length ? Math.round(activeDays.reduce((a,b)=>a+b,0)/activeDays.length) : 0;
+  const total = calsByDay.reduce((a,b)=>a+b,0);
+  const maxDay = Math.max(...calsByDay,1);
+  const todayCals = (logs[today]||[]).reduce((s,m)=>s+m.cal,0);
+
+  // stat cards
+  document.getElementById('statCards').innerHTML = `
+    <div class="stat-card"><div class="label">ממוצע יומי</div><div class="value">${avg}</div><div class="unit">קק"ל</div></div>
+    <div class="stat-card"><div class="label">סה"כ תקופה</div><div class="value">${total.toLocaleString()}</div><div class="unit">קק"ל</div></div>
+    <div class="stat-card"><div class="label">היום</div><div class="value">${todayCals}</div><div class="unit">קק"ל</div></div>
+    <div class="stat-card"><div class="label">יעד יומי</div><div class="value">${goal}</div><div class="unit">קק"ל</div></div>
+  `;
+
+  // bar chart
+  document.getElementById('barChartTitle').textContent =
+    tab==='week'?'7 הימים האחרונים':tab==='month'?'30 הימים האחרונים':'כל הזמן';
+
+  // show at most 14 bars
+  const showDays = days.length>14 ? days.slice(-14) : days;
+  const showCals = days.length>14 ? calsByDay.slice(-14) : calsByDay;
+  const maxVal = Math.max(...showCals, 1);
+
+  document.getElementById('barsContainer').innerHTML = showDays.map((d,i)=>{
+    const pct = Math.max(showCals[i]/maxVal*100, showCals[i]>0?4:0);
+    const label = d===today ? 'היום' : new Date(d+'T12:00:00').toLocaleDateString('he-IL',{weekday:'short'});
+    return `<div class="bar-col">
+      <div class="bar-val">${showCals[i]||''}</div>
+      <div class="bar-fill" style="height:${pct}%;background:${showCals[i]>goal?'var(--warn)':'var(--accent2)'}"></div>
+      <div class="bar-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── PROFILE & BMI ───────────────────────────────────────────────────────────
+function renderProfile(){
+  const p = load('profile',{});
+  if(p.name) document.getElementById('profileName').value = p.name;
+  if(p.age) document.getElementById('profileAge').value = p.age;
+  if(p.gender) document.getElementById('profileGender').value = p.gender;
+  if(p.height) document.getElementById('profileHeight').value = p.height;
+  if(p.weight) document.getElementById('profileWeight').value = p.weight;
+  if(p.activity) document.getElementById('profileActivity').value = p.activity;
+  if(p.goal) document.getElementById('profileGoal').value = p.goal;
+  if(p.height && p.weight) calcBMI();
+}
+
+function calcBMI(){
+  const h = parseFloat(document.getElementById('profileHeight').value);
+  const w = parseFloat(document.getElementById('profileWeight').value);
+  const age = parseFloat(document.getElementById('profileAge').value)||30;
+  const gender = document.getElementById('profileGender').value||'male';
+  const activity = parseFloat(document.getElementById('profileActivity').value)||1.55;
+  const goal = document.getElementById('profileGoal').value||'maintain';
+  if(!h||!w) return;
+
+  const bmi = +(w / ((h/100)**2)).toFixed(1);
+  let status, statusClass, label;
+  if(bmi<18.5){ status='תת משקל'; statusClass='bmi-low'; label='BMI נמוך'; }
+  else if(bmi<25){ status='משקל תקין'; statusClass='bmi-normal'; label='טווח בריא'; }
+  else if(bmi<30){ status='עודף משקל'; statusClass='bmi-over'; label='מעל הטווח'; }
+  else { status='השמנה'; statusClass='bmi-obese'; label='גבוה מאוד'; }
+
+  document.getElementById('bmiCard').style.display='block';
+  document.getElementById('bmiValue').textContent = bmi;
+  document.getElementById('bmiLabel').textContent = label;
+  const statusEl = document.getElementById('bmiStatus');
+  statusEl.textContent = status;
+  statusEl.className = 'bmi-status '+statusClass;
+
+  // BMR (Mifflin-St Jeor)
+  let bmr;
+  if(gender==='male') bmr = 10*w + 6.25*h - 5*age + 5;
+  else bmr = 10*w + 6.25*h - 5*age - 161;
+  let tdee = Math.round(bmr * activity);
+  if(goal==='lose') tdee -= 500;
+  else if(goal==='gain') tdee += 300;
+  tdee = Math.max(tdee, 1200);
+
+  document.getElementById('recommendedBox').style.display='block';
+  document.getElementById('recommendedCal').textContent = tdee + ' קק"ל';
+  const goalText = goal==='lose'?'ירידה במשקל':goal==='gain'?'עלייה במשקל':'שמירה על משקל';
+  document.getElementById('recommendedNote').textContent = `לפי רמת פעילות ויעד: ${goalText}`;
+
+  // save recommended to profile for use in today ring
+  const p = load('profile',{});
+  p.recommendedCal = tdee;
+  save('profile', p);
+}
+
+function saveProfile(){
+  const p = {
+    name: document.getElementById('profileName').value,
+    age: parseFloat(document.getElementById('profileAge').value)||0,
+    gender: document.getElementById('profileGender').value,
+    height: parseFloat(document.getElementById('profileHeight').value)||0,
+    weight: parseFloat(document.getElementById('profileWeight').value)||0,
+    activity: document.getElementById('profileActivity').value,
+    goal: document.getElementById('profileGoal').value,
+    recommendedCal: load('profile',{}).recommendedCal||0,
+  };
+  save('profile', p);
+  showToast('✅ הפרופיל נשמר!');
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ─── PWA INSTALL ─────────────────────────────────────────────────────────────
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display='flex';
+});
+function installApp(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById('installBanner').style.display='none'; });
+}
+
+// ─── SERVICE WORKER ──────────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderToday();
+
+// ═══════════════════════════════════════════════════════════
+// ─── RECIPES ENGINE ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+
+function getRecipes(){ return load('my_recipes', []); }
+function saveRecipes(r){ save('my_recipes', r); }
+
+// ── Render recipes page ────────────────────────────────────
+function renderRecipes(){
+  const recipes = getRecipes();
+  const list = document.getElementById('recipesList');
+  if(!recipes.length){
+    list.innerHTML = `<div class="empty-state" style="padding:50px 20px">
+      <div class="icon">⭐</div>
+      <p>עדיין אין מתכונים שמורים.<br>לחץ "צור מתכון חדש" כדי להתחיל!</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = recipes.map((r,i) => {
+    const total = calcRecipeTotal(r);
+    const ings = r.ingredients.map(ing => `
+      <div class="ingredient-row">
+        <span class="ing-name">${ing.name}</span>
+        <span class="ing-amount">${ing.amount}${ing.unitLabel||ing.unit||'ג'}</span>
+        <span class="ing-cal">${Math.round(ing.calPer * ing.amount / 100)} קק"ל</span>
+      </div>`).join('');
+    return `
+    <div class="recipe-card">
+      <div class="recipe-card-header" onclick="toggleRecipeBody(${i})">
+        <div class="recipe-emoji">${r.emoji||'🍽'}</div>
+        <div class="recipe-info">
+          <div class="recipe-name">${r.name}</div>
+          <div class="recipe-sub">${r.ingredients.length} מרכיבים</div>
+        </div>
+        <div class="recipe-cal-badge">${total} קק"ל</div>
+      </div>
+      <div class="recipe-body" id="rb-body-${i}">
+        ${ings}
+        <div class="recipe-actions">
+          <button class="btn-add-recipe" onclick="addRecipeToToday(${i})">✓ הוסף לרישום היום</button>
+          <button class="btn-edit-recipe" onclick="openRbModal(${i})">✏️ ערוך</button>
+          <button class="btn-del-recipe" onclick="deleteRecipe(${i})">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRecipeBody(i){
+  const body = document.getElementById('rb-body-'+i);
+  body.classList.toggle('open');
+}
+
+function calcRecipeTotal(r){
+  return Math.round(r.ingredients.reduce((s, ing) => {
+    const unit = ing.unit || 'g';
+    const name = ing.name || '';
+    if(unit === 'g' || unit === 'ml') return s + (ing.calPer * ing.amount / 100);
+    if(unit === 'unit'){ const uw = FOOD_UNIT_WEIGHT[name]||100; return s + (ing.calPer * uw / 100 * ing.amount); }
+    if(unit === 'tbsp') return s + (ing.calPer * 15  / 100 * ing.amount);
+    if(unit === 'tsp')  return s + (ing.calPer * 5   / 100 * ing.amount);
+    if(unit === 'cup')  return s + (ing.calPer * 240 / 100 * ing.amount);
+    return s + (ing.calPer * ing.amount / 100);
+  }, 0));
+}
+
+// ── Add recipe to today's log ──────────────────────────────
+function addRecipeToToday(i){
+  const recipes = getRecipes();
+  const r = recipes[i];
+  const total = calcRecipeTotal(r);
+  const meals = getTodayMeals();
+  const time = new Date().toTimeString().slice(0,5);
+  meals.push({
+    name: r.name + (r.emoji ? ' ' + r.emoji : ''),
+    amount: 1, unit: 'מנה',
+    calPer: total, cal: total,
+    time, isRecipe: true
+  });
+  saveTodayMeals(meals);
+  showToast(`✅ ${r.name} נוסף! (${total} קק"ל)`);
+  showPage('today', document.querySelector('.nav-btn'));
+}
+
+function deleteRecipe(i){
+  const recipes = getRecipes();
+  const name = recipes[i].name;
+  recipes.splice(i, 1);
+  saveRecipes(recipes);
+  renderRecipes();
+  renderTodayRecipeChips();
+  showToast(`🗑 "${name}" נמחק`);
+}
+
+// ── Quick chips on today screen ────────────────────────────
+function renderTodayRecipeChips(){
+  const recipes = getRecipes();
+  const wrap = document.getElementById('todayRecipeChips');
+  if(!recipes.length){ wrap.style.display='none'; return; }
+  wrap.style.display='flex';
+  wrap.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;align-self:center;flex-shrink:0;">⚡ מהיר:</div>` +
+    recipes.map((r,i) => {
+      const total = calcRecipeTotal(r);
+      return `<div class="recipe-chip" onclick="addRecipeToToday(${i})">
+        <span class="chip-emoji">${r.emoji||'🍽'}</span>
+        <span class="chip-name">${r.name}</span>
+        <span class="chip-cal">${total}</span>
+      </div>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ─── RECIPE BUILDER MODAL ──────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+
+let rbEditIndex = null;   // null = new, number = edit existing
+let rbIngCount = 0;
+
+function openRbModal(editIndex = null){
+  rbEditIndex = editIndex;
+  rbIngCount = 0;
+  document.getElementById('rbIngredients').innerHTML = '';
+  document.getElementById('rbTotal').textContent = '0 קק"ל';
+
+  if(editIndex !== null){
+    // Edit mode — prefill
+    const r = getRecipes()[editIndex];
+    document.getElementById('rbTitle').textContent = '✏️ ערוך מתכון';
+    document.getElementById('rbName').value = r.name;
+    document.getElementById('rbEmoji').value = r.emoji||'';
+    r.ingredients.forEach(ing => rbAddIngredient(ing));
+  } else {
+    document.getElementById('rbTitle').textContent = '✨ מתכון חדש';
+    document.getElementById('rbName').value = '';
+    document.getElementById('rbEmoji').value = '';
+    rbAddIngredient(); // start with one empty row
+  }
+
+  document.getElementById('rbModal').classList.add('open');
+  setTimeout(() => document.getElementById('rbName').focus(), 350);
+}
+
+function closeRbModal(){
+  document.getElementById('rbModal').classList.remove('open');
+}
+
+function rbAddIngredient(prefill = null){
+  const id = ++rbIngCount;
+  const div = document.createElement('div');
+  div.className = 'ing-builder-row';
+  div.id = 'ing-row-' + id;
+  div.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-bottom:4px">
+      <div style="flex:3;min-width:120px">
+        <label class="form-label">מרכיב</label>
+        <input class="form-input" id="ing-name-${id}" type="text"
+          placeholder="חלב, קקאו, סוכר..."
+          value="${prefill ? prefill.name : ''}"
+          oninput="rbAutofillCal(${id}); rbShowSuggestions(${id})" />
+      </div>
+      <div style="flex:1;min-width:60px">
+        <label class="form-label">כמות</label>
+        <input class="form-input" id="ing-amount-${id}" type="number"
+          placeholder="200" min="0" step="0.1"
+          value="${prefill ? prefill.amount : ''}"
+          oninput="rbRecalcTotal()" />
+      </div>
+      <div style="flex:1;min-width:70px">
+        <label class="form-label">יחידה</label>
+        <select class="form-input" id="ing-unit-${id}" onchange="rbUnitChanged(${id})" style="padding:10px 6px;font-size:12px">
+          <option value="g" ${prefill && prefill.unit==='g' ? 'selected' : ''}>גרם</option>
+          <option value="ml" ${prefill && prefill.unit==='ml' ? 'selected' : ''}>מ"ל</option>
+          <option value="unit" ${prefill && prefill.unit==='unit' ? 'selected' : ''}>יחידה</option>
+          <option value="tbsp" ${prefill && prefill.unit==='tbsp' ? 'selected' : ''}>כף</option>
+          <option value="tsp" ${prefill && prefill.unit==='tsp' ? 'selected' : ''}>כפית</option>
+          <option value="cup" ${prefill && prefill.unit==='cup' ? 'selected' : ''}>כוס</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:65px">
+        <label class="form-label" id="ing-cal-lbl-${id}">קק"ל/100ג</label>
+        <input class="form-input" id="ing-cal-${id}" type="number"
+          placeholder="אוטו" min="0"
+          value="${prefill ? prefill.calPer : ''}"
+          oninput="rbRecalcTotal()" />
+      </div>
+      <button class="ing-del-btn" onclick="rbRemoveIngredient(${id})">✕</button>
+    </div>
+    <div id="ing-suggestions-${id}" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px"></div>`;
+  document.getElementById('rbIngredients').appendChild(div);
+  if(prefill) rbRecalcTotal();
+}
+
+function rbRemoveIngredient(id){
+  const row = document.getElementById('ing-row-'+id);
+  if(row) row.remove();
+  rbRecalcTotal();
+}
+
+function rbAutofillCal(id){
+  const name = document.getElementById('ing-name-'+id).value.trim().toLowerCase();
+  const calInput = document.getElementById('ing-cal-'+id);
+  if(!calInput.value){
+    const found = FOODS.find(f => f.name.toLowerCase().includes(name) || name.includes(f.name.toLowerCase()));
+    if(found){ calInput.value = found.cal; rbRecalcTotal(); }
+  }
+}
+
+function rbShowSuggestions(id){
+  const q = document.getElementById('ing-name-'+id).value.trim().toLowerCase();
+  const box = document.getElementById('ing-suggestions-'+id);
+  if(!box) return;
+  if(!q || q.length < 2){ box.innerHTML=''; return; }
+  // הצג עד 5 תוצאות עם שם מלא וקלוריות
+  const matches = FOODS.filter(f => f.name.includes(q) || q.includes(f.name.toLowerCase())).slice(0,5);
+  box.innerHTML = matches.map(f =>
+    `<button style="background:#1a2920;border:1px solid #2a3d2e;border-radius:20px;padding:3px 10px;font-size:11px;color:#e8f5ec;cursor:pointer;font-family:'Heebo',sans-serif;"
+      onclick="rbSelectFood(${id},'${f.name.replace(/'/g,"\'")}',${f.cal})">${f.name} <span style="color:#4ade80">${f.cal}</span></button>`
+  ).join('');
+}
+
+function rbSelectFood(id, name, cal){
+  document.getElementById('ing-name-'+id).value = name;
+  document.getElementById('ing-cal-'+id).value = cal;
+  const box = document.getElementById('ing-suggestions-'+id);
+  if(box) box.innerHTML = '';
+  rbRecalcTotal();
+}
+
+function rbUnitChanged(id){
+  const unit = document.getElementById('ing-unit-'+id)?.value || 'g';
+  const lbl = document.getElementById('ing-cal-lbl-'+id);
+  if(!lbl) return;
+  if(unit === 'unit') lbl.textContent = 'קק"ל/יח׳';
+  else if(unit === 'ml') lbl.textContent = 'קק"ל/100מל';
+  else if(unit === 'tbsp') lbl.textContent = 'קק"ל/כף';
+  else if(unit === 'tsp') lbl.textContent = 'קק"ל/כפית';
+  else if(unit === 'cup') lbl.textContent = 'קק"ל/כוס';
+  else lbl.textContent = 'קק"ל/100ג';
+  rbRecalcTotal();
+}
+
+function rbIngCalc(id){
+  const amount = parseFloat(document.getElementById('ing-amount-'+id)?.value) || 0;
+  const calPer = parseFloat(document.getElementById('ing-cal-'+id)?.value) || 0;
+  const unit   = document.getElementById('ing-unit-'+id)?.value || 'g';
+  const name   = document.getElementById('ing-name-'+id)?.value?.trim() || '';
+  if(unit === 'g' || unit === 'ml') return calPer * amount / 100;
+  if(unit === 'unit'){
+    const uw = FOOD_UNIT_WEIGHT[name] || 100;
+    return calPer * uw / 100 * amount;
+  }
+  if(unit === 'tbsp') return calPer * 15 / 100 * amount;
+  if(unit === 'tsp')  return calPer * 5  / 100 * amount;
+  if(unit === 'cup')  return calPer * 240/ 100 * amount;
+  return calPer * amount / 100;
+}
+
+function rbRecalcTotal(){
+  let total = 0;
+  document.querySelectorAll('.ing-builder-row').forEach(row => {
+    const idMatch = row.id.match(/ing-row-(\d+)/);
+    if(!idMatch) return;
+    total += rbIngCalc(idMatch[1]);
+  });
+  document.getElementById('rbTotal').textContent = Math.round(total) + ' קק"ל';
+}
+
+function saveRecipe(){
+  const name = document.getElementById('rbName').value.trim();
+  if(!name){ showToast('⚠️ הזן שם למתכון'); return; }
+
+  const ingredients = [];
+  document.querySelectorAll('.ing-builder-row').forEach(row => {
+    const idMatch = row.id.match(/ing-row-(\d+)/);
+    if(!idMatch) return;
+    const id = idMatch[1];
+    const ingName = document.getElementById('ing-name-'+id)?.value.trim();
+    const amount = parseFloat(document.getElementById('ing-amount-'+id)?.value) || 0;
+    const calPer = parseFloat(document.getElementById('ing-cal-'+id)?.value) || 0;
+    const ingUnit = document.getElementById('ing-unit-'+id)?.value || 'g';
+    const unitLabels = {g:'ג',ml:'מ"ל',unit:'יח׳',tbsp:'כף',tsp:'כפית',cup:'כוס'};
+    if(ingName && amount) ingredients.push({ name: ingName, amount, calPer, unit: ingUnit, unitLabel: unitLabels[ingUnit]||'ג' });
+  });
+
+  if(!ingredients.length){ showToast('⚠️ הוסף לפחות מרכיב אחד'); return; }
+
+  const emoji = document.getElementById('rbEmoji').value.trim() || '🍽';
+  const recipe = { name, emoji, ingredients, createdAt: Date.now() };
+
+  const recipes = getRecipes();
+  if(rbEditIndex !== null){
+    recipes[rbEditIndex] = recipe;
+    showToast(`✅ "${name}" עודכן!`);
+  } else {
+    recipes.push(recipe);
+    showToast(`✅ "${name}" נשמר!`);
+  }
+  saveRecipes(recipes);
+  closeRbModal();
+  renderRecipes();
+  renderTodayRecipeChips();
+}
+
+// close on backdrop click
+document.getElementById('rbModal').addEventListener('click', function(e){
+  if(e.target === this) closeRbModal();
+});
+
+
+// ═══════════════════════════════════════════════════════════
+// ─── ACTIVITY & BURN ENGINE ────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+
+// MET values per activity key (already encoded in select option values as "key|MET")
+// calories burned = MET * weight(kg) * hours
+
+function getTodayBurn(){ return load(todayKey()+'_burn', {steps:0, activities:[]}); }
+function saveTodayBurn(b){ save(todayKey()+'_burn', b); }
+function getAllBurnLogs(){
+  const keys = Object.keys(localStorage).filter(k => k.match(/^\d{4}-\d{2}-\d{2}_burn$/));
+  const logs = {};
+  keys.forEach(k => { logs[k.replace('_burn','')] = JSON.parse(localStorage.getItem(k)||'{}'); });
+  return logs;
+}
+
+// ── Steps ─────────────────────────────────────────────────
+const STEPS_CAL_PER_STEP = 0.04; // ~40 cal per 1000 steps (average)
+
+function updateStepsPreview(){
+  const steps = parseInt(document.getElementById('stepsInput').value) || 0;
+  const cal = Math.round(steps * STEPS_CAL_PER_STEP);
+  document.getElementById('stepsCalPreview').textContent = cal > 0 ? `≈ ${cal} קק"ל` : '';
+}
+
+function saveSteps(){
+  const steps = parseInt(document.getElementById('stepsInput').value) || 0;
+  const burn = getTodayBurn();
+  burn.steps = steps;
+  saveTodayBurn(burn);
+  renderToday();
+  showToast(`✅ ${steps.toLocaleString()} צעדים נשמרו`);
+}
+
+// ── Burn Modal ────────────────────────────────────────────
+function openBurnModal(){
+  const profile = load('profile',{});
+  if(profile.weight) document.getElementById('burnWeight').value = profile.weight;
+  document.getElementById('burnActivity').value = '';
+  document.getElementById('burnDuration').value = '';
+  document.getElementById('burnPreview').style.display = 'none';
+  document.getElementById('burnModal').classList.add('open');
+}
+function closeBurnModal(){
+  document.getElementById('burnModal').classList.remove('open');
+}
+document.getElementById('burnModal').addEventListener('click', function(e){
+  if(e.target === this) closeBurnModal();
+});
+
+function updateBurnPreview(){
+  const actVal = document.getElementById('burnActivity').value;
+  const duration = parseFloat(document.getElementById('burnDuration').value) || 0;
+  const weight = parseFloat(document.getElementById('burnWeight').value) || 70;
+  if(!actVal || !duration){ document.getElementById('burnPreview').style.display='none'; return; }
+  const met = parseFloat(actVal.split('|')[1]) || 4;
+  const cal = Math.round(met * weight * (duration / 60));
+  document.getElementById('burnPreview').style.display = 'block';
+  document.getElementById('burnPreviewVal').textContent = cal;
+}
+
+function saveBurnActivity(){
+  const actVal = document.getElementById('burnActivity').value;
+  const duration = parseFloat(document.getElementById('burnDuration').value) || 0;
+  const weight = parseFloat(document.getElementById('burnWeight').value) || 70;
+  const actEl = document.getElementById('burnActivity');
+  const label = actEl.options[actEl.selectedIndex]?.text || '';
+  if(!actVal || !duration){ showToast('⚠️ בחר פעילות ומשך'); return; }
+  const met = parseFloat(actVal.split('|')[1]) || 4;
+  const cal = Math.round(met * weight * (duration / 60));
+  const burn = getTodayBurn();
+  burn.activities = burn.activities || [];
+  burn.activities.push({
+    key: actVal.split('|')[0], label, met, duration, weight, cal,
+    time: new Date().toTimeString().slice(0,5)
+  });
+  saveTodayBurn(burn);
+  closeBurnModal();
+  renderToday();
+  showToast(`🔥 ${label} — ${cal} קק"ל נשרפו`);
+}
+
+function deleteBurnActivity(i){
+  const burn = getTodayBurn();
+  burn.activities.splice(i,1);
+  saveTodayBurn(burn);
+  renderToday();
+}
+
+// ── Activity emoji map ─────────────────────────────────────
+const ACT_EMOJI = {
+  walk_slow:'🚶',walk_med:'🚶',walk_fast:'🏃',run_jog:'🏃',run_med:'🏃',run_fast:'⚡',
+  bike_easy:'🚴',bike_med:'🚴',bike_hard:'🚴',gym_weights:'🏋️',yoga:'🧘',hiit:'⚡',
+  swim:'🏊',aerobics:'💃',dance:'💃',stretch:'🤸',basketball:'🏀',soccer:'⚽',
+  tennis:'🎾',volleyball:'🏐',martial_arts:'🥊',housework:'🧹',gardening:'🌱',
+  stairs:'🪜',shopping:'🛒'
+};
+
+// ── Calc total burn for a day ──────────────────────────────
+function calcDayBurnTotal(burnData){
+  if(!burnData) return 0;
+  const stepsCal = Math.round((burnData.steps||0) * STEPS_CAL_PER_STEP);
+  const actCal = (burnData.activities||[]).reduce((s,a)=>s+a.cal,0);
+  return stepsCal + actCal;
+}
+
+// ── Render burn section on today ───────────────────────────
+function renderBurnSection(){
+  const burn = getTodayBurn();
+  const stepsCal = Math.round((burn.steps||0) * STEPS_CAL_PER_STEP);
+  const actCal = (burn.activities||[]).reduce((s,a)=>s+a.cal,0);
+  const total = stepsCal + actCal;
+
+  // populate steps input
+  if(burn.steps) document.getElementById('stepsInput').value = burn.steps;
+  document.getElementById('stepsCalPreview').textContent = burn.steps ? `≈ ${stepsCal} קק"ל` : '';
+
+  // burn card
+  const card = document.getElementById('burnCard');
+  const listEl = document.getElementById('burnList');
+  if(!burn.activities?.length && !burn.steps){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  document.getElementById('burnTotalDisplay').innerHTML = `${total} <span>קק"ל נשרפו</span>`;
+
+  let rows = '';
+  if(burn.steps){
+    rows += `<div class="burn-row">
+      <div class="burn-row-left">
+        <span class="burn-icon">🚶</span>
+        <div><div class="burn-name">${(burn.steps).toLocaleString()} צעדים</div>
+        <div class="burn-meta">הליכה יומית</div></div>
+      </div>
+      <span class="burn-cal">${stepsCal} קק"ל</span>
+    </div>`;
+  }
+  rows += (burn.activities||[]).map((a,i) => `
+    <div class="burn-row">
+      <div class="burn-row-left">
+        <span class="burn-icon">${ACT_EMOJI[a.key]||'🏃'}</span>
+        <div><div class="burn-name">${a.label}</div>
+        <div class="burn-meta">${a.duration} דק׳ · ${a.time}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="burn-cal">${a.cal} קק"ל</span>
+        <button class="burn-del" onclick="deleteBurnActivity(${i})">✕</button>
+      </div>
+    </div>`).join('');
+  listEl.innerHTML = rows;
+}
+
+// ── Patch renderToday to include summary strip + burn ──────
+const _origRenderToday = renderToday;
+renderToday = function(){
+  _origRenderToday();
+  renderBurnSection();
+  // update summary strip
+  const meals = getTodayMeals();
+  const eatTotal = meals.reduce((s,m)=>s+m.cal,0);
+  const burnData = getTodayBurn();
+  const burnTotal = calcDayBurnTotal(burnData);
+  const profile = load('profile',{});
+  const goal = profile.recommendedCal || 0;
+  const remaining = goal ? Math.max(0, goal - eatTotal) : 0;
+
+  document.getElementById('sumEat').textContent = eatTotal;
+  document.getElementById('sumBurn').textContent = burnTotal;
+  document.getElementById('sumNet').textContent = remaining || (goal ? 0 : '—');
+  // show strip only if something to show
+  document.getElementById('summaryStrip').style.display = (eatTotal||burnTotal||goal) ? 'flex' : 'none';
+};
+
+// ── Patch renderStats to show burn data ───────────────────
+const _origRenderStats = renderStats;
+renderStats = function(tab){
+  _origRenderStats(tab);
+
+  const burnLogs = getAllBurnLogs();
+  const logs = getAllLogs();
+  const today = todayKey();
+  const now = new Date();
+  let days = [];
+  if(tab==='week'){ for(let i=6;i>=0;i--){ const d=new Date(now); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); } }
+  else if(tab==='month'){ for(let i=29;i>=0;i--){ const d=new Date(now); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); } }
+  else {
+    const allKeys = new Set([...Object.keys(logs), ...Object.keys(burnLogs)]);
+    days = [...allKeys].sort();
+  }
+
+  const burnByDay = days.map(d => calcDayBurnTotal(burnLogs[d]||{}));
+  const eatByDay  = days.map(d => (logs[d]||[]).reduce((s,m)=>s+m.cal,0));
+
+  const activeBurn = burnByDay.filter(c=>c>0);
+  const avgBurn = activeBurn.length ? Math.round(activeBurn.reduce((a,b)=>a+b,0)/activeBurn.length) : 0;
+  const totalBurn = burnByDay.reduce((a,b)=>a+b,0);
+  const todayBurn = calcDayBurnTotal(burnLogs[today]||{});
+  const todaySteps = (burnLogs[today]||{}).steps || 0;
+
+  // burn stat cards
+  document.getElementById('burnStatCards').innerHTML = `
+    <div class="stat-card" style="border-color:#1e3a5f;background:#0f1a2e">
+      <div class="label" style="color:#3b82f6">ממוצע שריפה יומי</div>
+      <div class="value" style="color:#60a5fa">${avgBurn}</div>
+      <div class="unit" style="color:#3b82f6">קק"ל</div>
+    </div>
+    <div class="stat-card" style="border-color:#1e3a5f;background:#0f1a2e">
+      <div class="label" style="color:#3b82f6">סה"כ נשרף</div>
+      <div class="value" style="color:#60a5fa">${totalBurn.toLocaleString()}</div>
+      <div class="unit" style="color:#3b82f6">קק"ל</div>
+    </div>
+    <div class="stat-card" style="border-color:#1e3a5f;background:#0f1a2e">
+      <div class="label" style="color:#3b82f6">היום — שריפה</div>
+      <div class="value" style="color:#60a5fa">${todayBurn}</div>
+      <div class="unit" style="color:#3b82f6">קק"ל</div>
+    </div>
+    <div class="stat-card" style="border-color:#1e3a5f;background:#0f1a2e">
+      <div class="label" style="color:#3b82f6">צעדים היום</div>
+      <div class="value" style="color:#60a5fa">${todaySteps.toLocaleString()}</div>
+      <div class="unit" style="color:#3b82f6">צעדים</div>
+    </div>`;
+
+  // dual bar chart (eat + burn side by side)
+  const showDays = days.length>14 ? days.slice(-14) : days;
+  const showEat  = days.length>14 ? eatByDay.slice(-14) : eatByDay;
+  const showBurn = days.length>14 ? burnByDay.slice(-14) : burnByDay;
+  const maxVal   = Math.max(...showEat, ...showBurn, 1);
+
+  document.getElementById('barsContainer').innerHTML = showDays.map((d,i)=>{
+    const eatPct  = Math.max(showEat[i]/maxVal*100,  showEat[i]>0?3:0);
+    const burnPct = Math.max(showBurn[i]/maxVal*100, showBurn[i]>0?3:0);
+    const label = d===today ? 'היום' : new Date(d+'T12:00:00').toLocaleDateString('he-IL',{weekday:'short'});
+    return `<div class="dual-col-wrap">
+      <div class="dual-col">
+        <div class="d-bar" style="height:${eatPct}%;background:#22c55e"></div>
+        <div class="d-bar" style="height:${burnPct}%;background:#3b82f6"></div>
+      </div>
+      <div class="d-lbl">${label}</div>
+    </div>`;
+  }).join('');
+
+  // burn-only bars
+  const maxBurn = Math.max(...showBurn, 1);
+  document.getElementById('burnBarsContainer').innerHTML = showDays.map((d,i)=>{
+    const pct = Math.max(showBurn[i]/maxBurn*100, showBurn[i]>0?4:0);
+    const label = d===today ? 'היום' : new Date(d+'T12:00:00').toLocaleDateString('he-IL',{weekday:'short'});
+    return `<div class="bar-col">
+      <div class="bar-val" style="color:#60a5fa">${showBurn[i]||''}</div>
+      <div class="bar-fill" style="height:${pct}%;background:#3b82f6"></div>
+      <div class="bar-label">${label}</div>
+    </div>`;
+  }).join('');
+};
+
+</script>
+</body>
+</html>
