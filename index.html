@@ -1990,11 +1990,12 @@ function rbUnitChanged(id){
   const unit = document.getElementById('ing-unit-'+id)?.value || 'g';
   const lbl = document.getElementById('ing-cal-lbl-'+id);
   if(!lbl) return;
-  if(unit === 'unit') lbl.textContent = 'קק"ל/יח׳';
+  // תמיד קלוריות ל-100ג — היחידה רק מגדירה כמה גרם בכל יחידה
+  if(unit === 'unit') lbl.textContent = 'קק"ל/100ג (יח׳=אוטו)';
   else if(unit === 'ml') lbl.textContent = 'קק"ל/100מל';
-  else if(unit === 'tbsp') lbl.textContent = 'קק"ל/כף';
-  else if(unit === 'tsp') lbl.textContent = 'קק"ל/כפית';
-  else if(unit === 'cup') lbl.textContent = 'קק"ל/כוס';
+  else if(unit === 'tbsp') lbl.textContent = 'קק"ל/100ג (כף=15ג)';
+  else if(unit === 'tsp') lbl.textContent = 'קק"ל/100ג (כפית=5ג)';
+  else if(unit === 'cup') lbl.textContent = 'קק"ל/100ג (כוס=240ג)';
   else lbl.textContent = 'קק"ל/100ג';
   rbRecalcTotal();
 }
